@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct BudgetTrackerApp: App {
+    let appDependencies: AppDependencies = .init()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(appDependencies: appDependencies)
         }
     }
 }
