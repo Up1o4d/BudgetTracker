@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Adding files
+
+This project uses `PBXFileSystemSynchronizedRootGroup` — new files are picked up automatically. Do not edit `project.pbxproj` when adding source files.
+
 ## Build & test commands
 
 This is an Xcode project — use `xcodebuild` from the repo root:

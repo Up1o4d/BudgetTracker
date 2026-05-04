@@ -24,6 +24,6 @@ final class ActivityViewModel {
             loadingState = .error
             return
         }
-        loadingState = .idle
+        loadingState = transactions.isEmpty ? .empty : .idle
     }
 }
