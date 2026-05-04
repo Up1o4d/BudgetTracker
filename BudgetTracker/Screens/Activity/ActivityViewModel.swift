@@ -18,7 +18,12 @@ final class ActivityViewModel {
 
     func loadTransactions() async {
         loadingState = .loading
-        transactions = await transactionsProvider.fetchTransactions()
+        do {
+            transactions = try await transactionsProvider.fetchTransactions()
+        } catch {
+            loadingState = .error
+            return
+        }
         loadingState = .idle
     }
 }

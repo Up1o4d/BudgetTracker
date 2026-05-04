@@ -58,7 +58,7 @@ final class InMemoryTransactionsProvider: TransactionsProviderProtocol {
         Transaction(id: "50", amount: 49.99, vendor: "Internet Provider", category: .utilities, date: date(2026, 5, 3)),
     ]
 
-    func fetchTransactions() async -> [Transaction] {
+    func fetchTransactions() async throws -> [Transaction] {
         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
         return transactions
     }

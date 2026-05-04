@@ -1,3 +1,3 @@
 protocol TransactionsProviderProtocol {
-    func fetchTransactions() async -> [Transaction]
+    func fetchTransactions() async throws -> [Transaction]
 }

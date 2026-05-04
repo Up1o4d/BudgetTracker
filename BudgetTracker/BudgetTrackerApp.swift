@@ -9,7 +9,9 @@ import SwiftUI
 
 @main
 struct BudgetTrackerApp: App {
-    let appDependencies: AppDependencies = .init()
+    let appDependencies: AppDependencies = .init(
+        transactionsProvider: InMemoryTransactionsProvider()
+    )
 
     var body: some Scene {
         WindowGroup {

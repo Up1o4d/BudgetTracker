@@ -1,3 +1,3 @@
 struct AppDependencies {
-    let transactionsProvider: TransactionsProviderProtocol = InMemoryTransactionsProvider()
+    let transactionsProvider: TransactionsProviderProtocol
 }
