@@ -4,7 +4,7 @@ struct Category: Hashable, Identifiable {
     let id: String
     let name: String
     let symbolName: String // SF Symbol
-    let color: Color
+    let color: Color // TODO: Extract to theme
 }
 
 extension Category {

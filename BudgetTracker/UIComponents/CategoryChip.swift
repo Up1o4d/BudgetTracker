@@ -8,12 +8,12 @@ struct CategoryChip: View {
             Image(systemName: category.symbolName)
                 .foregroundStyle(category.color)
             Text(category.name)
-                .font(.system(size: 12))
+                .font(.system(size: 12)) // TODO: Extract font to theme or a central place in the project
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 12)
         .foregroundStyle(.white)
-        .background(Capsule().foregroundStyle(Color(hex: "#141416")))
+        .background(Capsule().foregroundStyle(Color(hex: "#141416"))) // TODO: Extract color to theme
     }
 }
 
