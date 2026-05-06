@@ -3,6 +3,21 @@ import SwiftUI
 struct CategoryChip: View {
     let category: Category
 
+    @Environment(\.colorScheme) private var colorScheme
+
+    // TODO: Extract colors to theme
+    private var textColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(hex: "#141416") : .white
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
     var body: some View {
         HStack {
             Image(systemName: category.symbolName)
@@ -12,8 +27,9 @@ struct CategoryChip: View {
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 12)
-        .foregroundStyle(.white)
-        .background(Capsule().foregroundStyle(Color(hex: "#141416"))) // TODO: Extract color to theme
+        .foregroundStyle(textColor)
+        .background(Capsule().foregroundStyle(backgroundColor))
+        .overlay(Capsule().stroke(borderColor, lineWidth: 0.5))
     }
 }
 
