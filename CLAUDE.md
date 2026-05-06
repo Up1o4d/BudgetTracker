@@ -23,7 +23,7 @@ xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination '
 
 ## Architecture
 
-MVVM app with four tabs (Home, Insights, Activity, Import). See `ARCHITECTURE.md` for the full rationale. Key layers:
+MVVM app with four tabs (Home, Insights, Activity, Import). See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
 
 ```
 View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol
@@ -48,6 +48,8 @@ Tokens live in `Design/Theme/`, applied via extensions in `Design/Extensions/`.
 - **Colors** — two layers: raw palette (`Color+Palette.swift`) → semantic constants (`Color+ThemeColors.swift`, e.g. `Color.bgCanvas`, `Color.textPrimary`). Always use semantic names in views. Light/dark variants are encoded at the semantic layer via `Color(light:dark:)`.
 - **Typography** — `AppTextStyle` bundles font + spacing into named tokens (`bodyMD`, `displayXL`, etc.). Apply with `.textStyle(_:)`.
 - **Screen root** — call `.defaultScreenStyle()` on every new screen (sets `bodyMD`, `textPrimary`, `accentLime` tint, `bgCanvas` background).
+
+See `docs/THEMING.md` for the full reference.
 
 ## Testing
 
