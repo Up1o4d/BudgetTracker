@@ -6,6 +6,19 @@ extension Color {
         static let black = Color(hex: "#000000")
         static let white = Color(hex: "#FFFFFF")
 
+        // Black with alpha
+        static let blackA08 = black.opacity(0.08)
+        static let blackA30 = black.opacity(0.30)
+        static let blackA35 = black.opacity(0.35)
+        static let blackA55 = black.opacity(0.55)
+
+        // White with alpha
+        static let whiteA07 = white.opacity(0.07)
+        static let whiteA18 = white.opacity(0.18)
+        static let whiteA35 = white.opacity(0.35)
+        static let whiteA55 = white.opacity(0.55)
+        static let whiteA70 = white.opacity(0.70)
+
         // Neutrals
         static let ink = Color(hex: "#0A0A0B")
         static let cream = Color(hex: "#F4F3EE")

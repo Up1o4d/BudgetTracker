@@ -31,9 +31,14 @@ struct ActivityView: View {
                 ContentUnavailableView("Something went wrong", systemImage: "exclamationmark.triangle")
             }
         }
+        .defaultScreenStyle()
         .navigationTitle("Activity")
         .task {
             await viewModel.loadTransactions()
         }
     }
+}
+
+#Preview {
+    ActivityView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider()))
 }

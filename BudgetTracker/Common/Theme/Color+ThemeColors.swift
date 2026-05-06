@@ -6,13 +6,13 @@ extension Color {
     static let bgCanvas = Color(light: Palette.cream, dark: Palette.ink)
     static let bgSurface = Color(light: Palette.white, dark: Palette.graphite)
     static let bgSurfaceAlt = Color(light: Palette.warmGray, dark: Palette.charcoal)
-    static let borderSubtle = Color(light: Palette.black.opacity(0.08), dark: Palette.white.opacity(0.07))
+    static let borderSubtle = Color(light: Palette.blackA08, dark: Palette.whiteA07)
 
     // MARK: - Text
 
     static let textPrimary = Color(light: Palette.ink, dark: Palette.white)
-    static let textSecondary = Color(light: Palette.black.opacity(0.55), dark: Palette.white.opacity(0.55))
-    static let textTertiary = Color(light: Palette.black.opacity(0.35), dark: Palette.white.opacity(0.35))
+    static let textSecondary = Color(light: Palette.blackA55, dark: Palette.whiteA55)
+    static let textTertiary = Color(light: Palette.blackA35, dark: Palette.whiteA35)
     static let textOnAccent = Color(light: Palette.ink, dark: Palette.ink)
 
     // MARK: - Accent (light value is the darkened variant for legibility on white)
@@ -27,7 +27,7 @@ extension Color {
 
     static let statusPositive = Color(light: Palette.green, dark: Palette.teal)
     static let statusNegative = Color(light: Palette.redMuted, dark: Palette.redBright)
-    static let statusNeutral = Color(light: Palette.black.opacity(0.35), dark: Palette.white.opacity(0.18))
+    static let statusNeutral = Color(light: Palette.blackA35, dark: Palette.whiteA18)
     static let statusInfo = Color(light: Palette.blueMuted, dark: Palette.blueBright)
 
     // MARK: - Category (constant across modes — sit on tinted fills)
@@ -44,5 +44,5 @@ extension Color {
     // MARK: - Chrome
 
     static let chromeIsland = Color(light: Palette.black, dark: Palette.black)
-    static let chromeHandle = Color(light: Palette.black.opacity(0.30), dark: Palette.white.opacity(0.70))
+    static let chromeHandle = Color(light: Palette.blackA30, dark: Palette.whiteA70)
 }
