@@ -41,6 +41,14 @@ View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol
 
 **`LoadingState`** — enum used in ViewModels to drive loading/error/idle UI states.
 
+## Theming
+
+Tokens live in `Design/Theme/`, applied via extensions in `Design/Extensions/`.
+
+- **Colors** — two layers: raw palette (`Color+Palette.swift`) → semantic constants (`Color+ThemeColors.swift`, e.g. `Color.bgCanvas`, `Color.textPrimary`). Always use semantic names in views. Light/dark variants are encoded at the semantic layer via `Color(light:dark:)`.
+- **Typography** — `AppTextStyle` bundles font + spacing into named tokens (`bodyMD`, `displayXL`, etc.). Apply with `.textStyle(_:)`.
+- **Screen root** — call `.defaultScreenStyle()` on every new screen (sets `bodyMD`, `textPrimary`, `accentLime` tint, `bgCanvas` background).
+
 ## Testing
 
 - Unit tests use **Swift Testing** (`@Test`, `#expect`) — target ViewModels with `InMemoryTransactionsProvider`.
