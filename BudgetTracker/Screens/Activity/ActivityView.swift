@@ -26,13 +26,13 @@ struct ActivityView: View {
                     }
                 }
             case .empty:
-                ContentUnavailableView("No Transactions", systemImage: "tray")
+                ContentUnavailableView("screen.activity.empty", systemImage: "tray")
             case .error:
-                ContentUnavailableView("Something went wrong", systemImage: "exclamationmark.triangle")
+                ContentUnavailableView("screen.activity.error", systemImage: "exclamationmark.triangle")
             }
         }
         .defaultScreenStyle()
-        .navigationTitle("Activity")
+        .navigationTitle("screen.activity.title")
         .task {
             await viewModel.loadTransactions()
         }

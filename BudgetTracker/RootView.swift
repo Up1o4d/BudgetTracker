@@ -6,32 +6,26 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: router.selectedTabBinding) {
-            NavigationStack(path: router.navigationPathBinding(for: .home)) {
-                Text("home")
+            ForEach(Tab.allCases, id: \.self) { tab in
+                NavigationStack(path: router.navigationPathBinding(for: tab)) {
+                    tabRoot(for: tab)
+                }
+                .tabItem { Label(tab.name, systemImage: tab.systemImage) }
+                .tag(tab)
             }
-            .tabItem { Label("Home", systemImage: "house") }
-            .tag(AppRouter.Tab.home)
-
-            NavigationStack(path: router.navigationPathBinding(for: .insights)) {
-                Text("insights")
-            }
-            .tabItem { Label("Insights", systemImage: "waveform.path.ecg") }
-            .tag(AppRouter.Tab.insights)
-
-            NavigationStack(path: router.navigationPathBinding(for: .activity)) {
-                ActivityView(
-                    viewModel: .init(transactionsProvider: appDependencies.transactionsProvider)
-                )
-            }
-            .tabItem { Label("Activity", systemImage: "list.bullet") }
-            .tag(AppRouter.Tab.activity)
-
-            NavigationStack(path: router.navigationPathBinding(for: .importing)) {
-                Text("importing")
-            }
-            .tabItem { Label("Import", systemImage: "arrow.down.to.line") }
-            .tag(AppRouter.Tab.importing)
         }
+        .defaultScreenStyle()
         // TODO: - Add navigationDestination to resolve navigation screens
+    }
+
+    @ViewBuilder
+    private func tabRoot(for tab: Tab) -> some View {
+        switch tab {
+        case .home: Text("home")
+        case .activity:
+            ActivityView(
+                viewModel: .init(transactionsProvider: appDependencies.transactionsProvider)
+            )
+        }
     }
 }

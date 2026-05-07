@@ -2,8 +2,6 @@ import SwiftUI
 
 @Observable
 final class AppRouter {
-    enum Tab: Hashable { case home, insights, activity, importing }
-
     private var selectedTab: Tab = .home
     private var paths: [Tab: NavigationPath] = [:]
 
