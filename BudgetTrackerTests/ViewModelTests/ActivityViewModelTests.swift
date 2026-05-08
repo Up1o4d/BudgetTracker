@@ -16,7 +16,7 @@ struct ActivityViewModelTests {
     @Test func loadTransactions_setsIdleStateWhenTransactionsNonEmpty() async {
         let provider = MockTransactionsProvider()
         provider.stubbedTransactions = [
-            Transaction(id: "1", amount: 10, vendor: "A", category: .groceries, date: .now),
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
         ]
         let vm = ActivityViewModel(transactionsProvider: provider)
         await vm.loadTransactions()
@@ -32,8 +32,8 @@ struct ActivityViewModelTests {
     @Test func loadTransactions_populatesTransactions() async {
         let provider = MockTransactionsProvider()
         let transactions = [
-            Transaction(id: "1", amount: 10, vendor: "A", category: .groceries, date: .now),
-            Transaction(id: "2", amount: 20, vendor: "B", category: .dining, date: .now),
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
         ]
         provider.stubbedTransactions = transactions
         let vm = ActivityViewModel(transactionsProvider: provider)
@@ -67,9 +67,9 @@ struct ActivityViewModelTests {
 
         let provider = MockTransactionsProvider()
         provider.stubbedTransactions = [
-            Transaction(id: "1", amount: 10, vendor: "A", category: .groceries, date: today),
-            Transaction(id: "2", amount: 20, vendor: "B", category: .dining, date: today),
-            Transaction(id: "3", amount: 30, vendor: "C", category: .rent, date: yesterday),
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: today),
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: today),
+            Transaction(id: "3", amount: 30, vendor: "C", categoryId: "rent", date: yesterday),
         ]
         let vm = ActivityViewModel(transactionsProvider: provider)
         await vm.loadTransactions()

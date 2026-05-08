@@ -26,6 +26,8 @@ struct RootView: View {
             ActivityView(
                 viewModel: .init(transactionsProvider: appDependencies.transactionsProvider)
             )
+        case .add: Text("Add")
+            AddView(viewModel: .init(transactionsProvider: appDependencies.transactionsProvider))
         }
     }
 }

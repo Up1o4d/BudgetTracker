@@ -12,4 +12,6 @@ final class MockTransactionsProvider: TransactionsProviderProtocol {
         }
         return stubbedTransactions
     }
+
+    func addTransactions(_: [Transaction]) async throws {}
 }

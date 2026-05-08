@@ -4,6 +4,6 @@ struct Transaction: Hashable, Identifiable {
     let id: String
     let amount: Decimal
     let vendor: String
-    let category: Category
+    let categoryId: String
     let date: Date
 }
