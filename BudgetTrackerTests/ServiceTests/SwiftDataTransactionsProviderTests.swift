@@ -15,11 +15,28 @@ struct SwiftDataTransactionsProviderTests {
         sut = SwiftDataTransactionsProvider(modelContainer: modelContainer)
     }
 
+    // MARK: - fetchTransactions()
+
     @Test
     func fetchTransactions_returnsEmptyWhenStoreIsEmpty() async throws {
         let result = try await sut.fetchTransactions()
         #expect(result.isEmpty)
     }
+
+    @Test
+    func fetchTransactions_returnsSortedByDateDescending() async throws {
+        let older = Transaction(id: "old", amount: 10, vendor: "Old Shop", categoryId: Category.other.id, date: .distantPast)
+        let newer = Transaction(id: "new", amount: 20, vendor: "New Shop", categoryId: Category.other.id, date: .distantFuture)
+
+        try await sut.addTransactions([older, newer])
+        let result = try await sut.fetchTransactions()
+
+        #expect(result.count == 2)
+        #expect(result[0] == newer)
+        #expect(result[1] == older)
+    }
+
+    // MARK: - addTransactions(_:)
 
     @Test
     func addTransactions_persistsTransaction() async throws {
@@ -49,18 +66,5 @@ struct SwiftDataTransactionsProviderTests {
         let result = try await sut.fetchTransactions()
 
         #expect(result.count == 3)
-    }
-
-    @Test
-    func fetchTransactions_returnsSortedByDateDescending() async throws {
-        let older = Transaction(id: "old", amount: 10, vendor: "Old Shop", categoryId: Category.other.id, date: .distantPast)
-        let newer = Transaction(id: "new", amount: 20, vendor: "New Shop", categoryId: Category.other.id, date: .distantFuture)
-
-        try await sut.addTransactions([older, newer])
-        let result = try await sut.fetchTransactions()
-
-        #expect(result.count == 2)
-        #expect(result[0].id == newer.id)
-        #expect(result[1].id == older.id)
     }
 }
