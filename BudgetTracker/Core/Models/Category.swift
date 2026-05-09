@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Category: Hashable, Identifiable {
+struct Category: Hashable, Equatable, Identifiable {
     let id: String
     let name: String
     let symbolName: String // SF Symbol
