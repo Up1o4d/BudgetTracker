@@ -34,11 +34,11 @@ struct ActivityView: View {
         .defaultScreenStyle()
         .navigationTitle("screen.activity.title")
         .task {
-            await viewModel.loadTransactions()
+            await viewModel.loadData()
         }
     }
 }
 
 #Preview {
-    ActivityView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider()))
+    ActivityView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider(), categoriesProvider: InMemoryCategoriesProvider()))
 }

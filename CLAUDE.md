@@ -37,7 +37,7 @@ View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol
 
 **Provider protocol** — `TransactionsProviderProtocol` is the seam between the app and storage. `InMemoryTransactionsProvider` is the test/preview double; `SwiftDataTransactionsProvider` will be the production conformance once wired in (currently `BudgetTrackerApp` still uses `InMemoryTransactionsProvider`).
 
-**Category** — a `struct` with static instances exposed via `Category.all`. Transactions embed the full `Category` struct directly.
+**Category** — a `struct` managed via `CategoriesProviderProtocol`. `Transaction` references a category by `categoryId: String`; ViewModels join them at display time.
 
 **`LoadingState`** — enum used in ViewModels to drive loading/error/idle UI states.
 

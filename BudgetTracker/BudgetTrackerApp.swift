@@ -20,9 +20,8 @@ struct BudgetTrackerApp: App {
             fatalError("Failed to create ModelContainer: \(error)")
         }
 
-        appDependencies = .init(
-            transactionsProvider: SwiftDataTransactionsProvider(modelContainer: modelContainer)
-        )
+        // appDependencies = .swiftData(modelContainer: modelContainer)
+        appDependencies = .inMemory()
     }
 
     var body: some Scene {

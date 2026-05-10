@@ -24,7 +24,7 @@ struct RootView: View {
         case .home: Text("home")
         case .activity:
             ActivityView(
-                viewModel: .init(transactionsProvider: appDependencies.transactionsProvider)
+                viewModel: .init(transactionsProvider: appDependencies.transactionsProvider, categoriesProvider: appDependencies.categoriesProvider)
             )
         case .add: Text("Add")
             AddView(viewModel: .init(transactionsProvider: appDependencies.transactionsProvider))
