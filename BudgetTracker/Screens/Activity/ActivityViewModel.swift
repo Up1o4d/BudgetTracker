@@ -25,8 +25,10 @@ final class ActivityViewModel {
     func loadData() async {
         loadingState = .loading
         do {
-            transactions = try await transactionsProvider.fetchTransactions()
-            categories = try await categoriesProvider.fetchCategories()
+            async let fetchedTransactions = transactionsProvider.fetchTransactions()
+            async let fetchedCategories = categoriesProvider.fetchCategories()
+            transactions = try await fetchedTransactions
+            categories = try await fetchedCategories
         } catch {
             loadingState = .error
             return

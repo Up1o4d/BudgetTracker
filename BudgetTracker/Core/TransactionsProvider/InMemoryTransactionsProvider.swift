@@ -1,11 +1,11 @@
 import Foundation
 
-final class InMemoryTransactionsProvider: TransactionsProviderProtocol {
-    private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
-        Calendar.current.date(from: DateComponents(year: year, month: month, day: day))!
+actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
+    private nonisolated static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        Calendar(identifier: .gregorian).date(from: DateComponents(year: year, month: month, day: day))!
     }
 
-    private var transactions: [Transaction] = [
+    private nonisolated static let seed: [Transaction] = [
         Transaction(id: "1", amount: 1200.00, vendor: "City Apartments", categoryId: Category.rent.id, date: date(2026, 1, 1)),
         Transaction(id: "2", amount: 54.30, vendor: "Whole Foods", categoryId: Category.groceries.id, date: date(2026, 1, 3)),
         Transaction(id: "3", amount: 12.50, vendor: "Uber", categoryId: Category.transport.id, date: date(2026, 1, 5)),
@@ -57,6 +57,8 @@ final class InMemoryTransactionsProvider: TransactionsProviderProtocol {
         Transaction(id: "49", amount: 66.00, vendor: "Sushi Bar", categoryId: Category.dining.id, date: date(2026, 5, 3)),
         Transaction(id: "50", amount: 49.99, vendor: "Internet Provider", categoryId: Category.utilities.id, date: date(2026, 5, 3)),
     ]
+
+    private var transactions: [Transaction] = InMemoryTransactionsProvider.seed
 
     func fetchTransactions() async throws -> [Transaction] {
         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))

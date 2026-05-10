@@ -11,16 +11,13 @@ import SwiftUI
 @main
 struct BudgetTrackerApp: App {
     let appDependencies: AppDependencies
-    let modelContainer: ModelContainer
 
     init() {
-        do {
-            modelContainer = try .init(for: StoredTransaction.self)
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-
-        // appDependencies = .swiftData(modelContainer: modelContainer)
+        // do {
+        //    appDependencies = try .swiftData()
+        // } catch {
+        //    fatalError("Failed to create ModelContainer: \(error)")
+        // }
         appDependencies = .inMemory()
     }
 

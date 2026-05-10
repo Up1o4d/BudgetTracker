@@ -1,6 +1,6 @@
 import Foundation
 
-struct Transaction: Hashable, Equatable, Identifiable {
+nonisolated struct Transaction: Hashable, Equatable, Identifiable {
     let id: String
     let amount: Decimal
     let vendor: String

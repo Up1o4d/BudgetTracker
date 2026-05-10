@@ -1,13 +1,12 @@
 import Foundation
 import SwiftData
 
-final class SwiftDataTransactionsProvider: TransactionsProviderProtocol {
+actor SwiftDataTransactionsProvider: TransactionsProviderProtocol {
     private let modelContainer: ModelContainer
-    private let modelContext: ModelContext
+    private lazy var modelContext: ModelContext = .init(modelContainer)
 
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
-        modelContext = modelContainer.mainContext
     }
 
     func fetchTransactions() async throws -> [Transaction] {

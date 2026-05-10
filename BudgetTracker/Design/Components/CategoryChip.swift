@@ -6,7 +6,7 @@ struct CategoryChip: View {
     var body: some View {
         HStack {
             Image(systemName: category.symbolName)
-                .foregroundStyle(category.color)
+                .foregroundStyle(Color(hex: category.colorHex))
             Text(category.name)
                 .textStyle(.chip)
         }

@@ -1,4 +1,4 @@
-final class InMemoryCategoriesProvider: CategoriesProviderProtocol {
+actor InMemoryCategoriesProvider: CategoriesProviderProtocol {
     private let categories: [Category]
 
     init(categories: [Category] = Category.all) {

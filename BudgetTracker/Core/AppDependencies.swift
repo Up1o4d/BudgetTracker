@@ -11,8 +11,10 @@ struct AppDependencies {
         )
     }
 
-    static func swiftData(modelContainer: ModelContainer) -> AppDependencies {
-        AppDependencies(
+    static func swiftData() throws -> AppDependencies {
+        let modelContainer: ModelContainer = try .init(for: StoredTransaction.self)
+
+        return AppDependencies(
             transactionsProvider: SwiftDataTransactionsProvider(modelContainer: modelContainer),
             categoriesProvider: InMemoryCategoriesProvider() // TODO: replace with SwiftDataCategoriesProvider once that's implemented
         )
