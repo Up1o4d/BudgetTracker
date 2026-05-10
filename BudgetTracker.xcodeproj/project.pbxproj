@@ -28,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CE1BCC992FB0489800FD5950 /* BudgetTracker.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = BudgetTracker.xctestplan; sourceTree = "<group>"; };
 		CEDAA8302FA32BAF004B56E8 /* BudgetTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BudgetTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEDAA83D2FA32BAF004B56E8 /* BudgetTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BudgetTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEDAA8472FA32BAF004B56E8 /* BudgetTrackerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BudgetTrackerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +81,7 @@
 		CEDAA8272FA32BAF004B56E8 = {
 			isa = PBXGroup;
 			children = (
+				CE1BCC992FB0489800FD5950 /* BudgetTracker.xctestplan */,
 				CEDAA8322FA32BAF004B56E8 /* BudgetTracker */,
 				CEDAA8402FA32BAF004B56E8 /* BudgetTrackerTests */,
 				CEDAA84A2FA32BAF004B56E8 /* BudgetTrackerUITests */,
