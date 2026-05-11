@@ -25,7 +25,7 @@ struct AddView: View {
                             Button {
                                 viewModel.selectedCategory = category
                             } label: {
-                                CategoryChip(category: category)
+                                Chip(systemImage: category.symbolName, text: category.name, iconColor: Color(hex: category.colorHex))
                                     .overlay {
                                         if viewModel.selectedCategory.id == category.id {
                                             Capsule().stroke(Color.accentLime, lineWidth: 2)

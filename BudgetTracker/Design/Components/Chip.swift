@@ -1,13 +1,15 @@
 import SwiftUI
 
-struct CategoryChip: View {
-    let category: Category
+struct Chip: View {
+    let systemImage: String
+    let text: String
+    var iconColor: Color = .textSecondary
 
     var body: some View {
         HStack {
-            Image(systemName: category.symbolName)
-                .foregroundStyle(Color(hex: category.colorHex))
-            Text(category.name)
+            Image(systemName: systemImage)
+                .foregroundStyle(iconColor)
+            Text(text)
                 .textStyle(.chip)
         }
         .padding(.vertical, 6)
@@ -21,7 +23,7 @@ struct CategoryChip: View {
 #Preview {
     VStack(alignment: .leading, spacing: 12) {
         ForEach(Category.all) { category in
-            CategoryChip(category: category)
+            Chip(systemImage: category.symbolName, text: category.name, iconColor: Color(hex: category.colorHex))
         }
     }
     .padding()
