@@ -57,17 +57,20 @@ final class ActivityViewModel {
         )
     }
 
-    func toggleFilterCategory(_ category: Category) {
+    // Returned so tests can await completion; production callers discard it.
+    @discardableResult
+    func toggleFilterCategory(_ category: Category) -> Task<Void, Never> {
         if filterCategoryIds.contains(category.id) {
             filterCategoryIds.remove(category.id)
         } else {
             filterCategoryIds.insert(category.id)
         }
-        Task { await loadTransactions() }
+        return Task { await self.loadTransactions() }
     }
 
-    func resetFilterCategories() {
+    @discardableResult
+    func resetFilterCategories() -> Task<Void, Never> {
         filterCategoryIds.removeAll()
-        Task { await loadTransactions() }
+        return Task { await self.loadTransactions() }
     }
 }

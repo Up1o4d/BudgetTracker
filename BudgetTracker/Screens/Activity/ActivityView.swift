@@ -25,7 +25,7 @@ struct ActivityView: View {
         VStack {
             ScrollView(.horizontal) {
                 HStack {
-                    Button(action: viewModel.resetFilterCategories) {
+                    Button(action: { viewModel.resetFilterCategories() }) {
                         // TODO: Localize string
                         Chip(text: "All", isSelected: viewModel.filterCategoryIds.isEmpty)
                     }

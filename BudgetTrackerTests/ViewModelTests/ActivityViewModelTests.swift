@@ -17,9 +17,9 @@ struct ActivityViewModelTests {
 
     @Test
     func initialState() {
-        #expect(sut.loadingState == .initial)
-        #expect(sut.transactions.isEmpty)
-        #expect(sut.categories.isEmpty)
+        #expect(sut.viewLoadingState == .loading)
+        #expect(sut.transactionsState.data.isEmpty)
+        #expect(sut.categoriesState.data.isEmpty)
     }
 
     // MARK: - loadData() happy path
@@ -30,13 +30,13 @@ struct ActivityViewModelTests {
             Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
         ]
         await sut.loadData()
-        #expect(sut.loadingState == .idle)
+        #expect(sut.viewLoadingState == .idle)
     }
 
     @Test
-    func loadData_setsEmptyStateWhenNoTransactions() async {
+    func loadData_setsIdleStateWhenNoTransactions() async {
         await sut.loadData()
-        #expect(sut.loadingState == .empty)
+        #expect(sut.viewLoadingState == .idle)
     }
 
     @Test
@@ -47,7 +47,7 @@ struct ActivityViewModelTests {
         ]
         transactionsProvider.stubbedTransactions = transactions
         await sut.loadData()
-        #expect(sut.transactions == transactions)
+        #expect(sut.transactionsState.data == transactions)
     }
 
     @Test
@@ -55,7 +55,7 @@ struct ActivityViewModelTests {
         let categories: [BudgetTracker.Category] = [.groceries, .dining]
         categoriesProvider.stubbedCategories = categories
         await sut.loadData()
-        #expect(sut.categories == categories)
+        #expect(sut.categoriesState.data == categories)
     }
 
     @Test
@@ -71,14 +71,71 @@ struct ActivityViewModelTests {
     func loadData_setsErrorStateOnTransactionsFailure() async {
         transactionsProvider.stubbedError = NSError(domain: "test", code: 0)
         await sut.loadData()
-        #expect(sut.loadingState == .error)
+        #expect(sut.viewLoadingState == .error)
     }
 
     @Test
     func loadData_setsErrorStateOnCategoriesFailure() async {
         categoriesProvider.stubbedError = NSError(domain: "test", code: 0)
         await sut.loadData()
-        #expect(sut.loadingState == .error)
+        #expect(sut.viewLoadingState == .error)
+    }
+
+    // MARK: - toggleFilterCategory
+
+    @Test
+    func toggleFilterCategory_addsCategory() {
+        sut.toggleFilterCategory(.groceries)
+        #expect(sut.filterCategoryIds == ["groceries"])
+    }
+
+    @Test
+    func toggleFilterCategory_removesOnSecondToggle() {
+        sut.toggleFilterCategory(.groceries)
+        sut.toggleFilterCategory(.groceries)
+        #expect(sut.filterCategoryIds.isEmpty)
+    }
+
+    @Test
+    func toggleFilterCategory_categoriesAreIndependent() {
+        sut.toggleFilterCategory(.groceries)
+        sut.toggleFilterCategory(.dining)
+        sut.toggleFilterCategory(.groceries)
+        #expect(sut.filterCategoryIds == ["dining"])
+    }
+
+    @Test
+    func toggleFilterCategory_reloadsTransactionsWithFilter() async {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
+        ]
+        await sut.loadData()
+        await sut.toggleFilterCategory(.groceries).value
+        #expect(sut.transactionsState.data.count == 1)
+        #expect(sut.transactionsState.data.first?.categoryId == "groceries")
+    }
+
+    // MARK: - resetFilterCategories
+
+    @Test
+    func resetFilterCategories_clearsAllFilters() {
+        sut.toggleFilterCategory(.groceries)
+        sut.toggleFilterCategory(.dining)
+        sut.resetFilterCategories()
+        #expect(sut.filterCategoryIds.isEmpty)
+    }
+
+    @Test
+    func resetFilterCategories_reloadsAllTransactions() async {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
+        ]
+        await sut.loadData()
+        await sut.toggleFilterCategory(.groceries).value
+        await sut.resetFilterCategories().value
+        #expect(sut.transactionsState.data.count == 2)
     }
 
     // MARK: - transactionsByDate
