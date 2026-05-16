@@ -5,13 +5,21 @@ final class ActivityViewModel {
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
 
-    private(set) var transactions: [Transaction] = []
-    private(set) var categories: [Category] = []
+    private(set) var transactionsState: DataState<Transaction> = .initial
+    private(set) var categoriesState: DataState<Category> = .initial
 
-    private(set) var loadingState: LoadingState = .initial
+    private(set) var filterCategoryIds: Set<String> = []
+
+    var viewLoadingState: LoadingState {
+        .merged(transactionsState.viewLoadingState, categoriesState.viewLoadingState)
+    }
 
     var transactionsByDate: [Date: [Transaction]] {
-        Dictionary(grouping: transactions, by: { Calendar.current.startOfDay(for: $0.date) })
+        Dictionary(grouping: transactionsState.data, by: { Calendar.current.startOfDay(for: $0.date) })
+    }
+
+    private var transactionFilter: TransactionFilter {
+        TransactionFilter(categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds)
     }
 
     init(
@@ -22,17 +30,44 @@ final class ActivityViewModel {
         self.categoriesProvider = categoriesProvider
     }
 
-    func loadData() async {
-        loadingState = .loading
+    private func loadTransactions() async {
+        transactionsState = DataState(loadingState: .loading, data: transactionsState.data)
         do {
-            async let fetchedTransactions = transactionsProvider.fetchTransactions()
-            async let fetchedCategories = categoriesProvider.fetchCategories()
-            transactions = try await fetchedTransactions
-            categories = try await fetchedCategories
+            let data = try await transactionsProvider.fetchTransactions(filter: transactionFilter)
+            transactionsState = DataState(loadingState: .idle, data: data)
         } catch {
-            loadingState = .error
-            return
+            transactionsState = DataState(loadingState: .error, data: transactionsState.data, error: error)
         }
-        loadingState = transactions.isEmpty ? .empty : .idle
+    }
+
+    private func loadCategories() async {
+        categoriesState = DataState(loadingState: .loading, data: categoriesState.data)
+        do {
+            let data = try await categoriesProvider.fetchCategories()
+            categoriesState = DataState(loadingState: .idle, data: data)
+        } catch {
+            categoriesState = DataState(loadingState: .error, data: categoriesState.data, error: error)
+        }
+    }
+
+    func loadData() async {
+        _ = await (
+            loadTransactions(),
+            loadCategories()
+        )
+    }
+
+    func toggleFilterCategory(_ category: Category) {
+        if filterCategoryIds.contains(category.id) {
+            filterCategoryIds.remove(category.id)
+        } else {
+            filterCategoryIds.insert(category.id)
+        }
+        Task { await loadTransactions() }
+    }
+
+    func resetFilterCategories() {
+        filterCategoryIds.removeAll()
+        Task { await loadTransactions() }
     }
 }

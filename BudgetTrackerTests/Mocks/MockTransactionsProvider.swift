@@ -4,11 +4,13 @@ final class MockTransactionsProvider: TransactionsProviderProtocol, @unchecked S
     var stubbedTransactions: [Transaction] = []
     var stubbedError: Error?
     private(set) var fetchTransactionsCallCount = 0
+    private(set) var lastFilter: TransactionFilter?
 
-    func fetchTransactions() async throws -> [Transaction] {
+    func fetchTransactions(filter: TransactionFilter) async throws -> [Transaction] {
         fetchTransactionsCallCount += 1
+        lastFilter = filter
         if let error = stubbedError { throw error }
-        return stubbedTransactions
+        return stubbedTransactions.filter { filter.matches($0) }
     }
 
     func addTransactions(_: [Transaction]) async throws {}

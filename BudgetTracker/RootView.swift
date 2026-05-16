@@ -9,6 +9,7 @@ struct RootView: View {
             ForEach(Tab.allCases, id: \.self) { tab in
                 NavigationStack(path: router.navigationPathBinding(for: tab)) {
                     tabRoot(for: tab)
+                        .navigationBarTitleDisplayMode(.inline)
                 }
                 .tabItem { Label(tab.name, systemImage: tab.systemImage) }
                 .tag(tab)

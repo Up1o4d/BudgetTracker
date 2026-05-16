@@ -6,6 +6,7 @@ actor InMemoryCategoriesProvider: CategoriesProviderProtocol {
     }
 
     func fetchCategories() async throws -> [Category] {
-        categories
+        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
+        return categories
     }
 }

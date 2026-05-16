@@ -60,9 +60,9 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
 
     private var transactions: [Transaction] = InMemoryTransactionsProvider.seed
 
-    func fetchTransactions() async throws -> [Transaction] {
+    func fetchTransactions(filter: TransactionFilter) async throws -> [Transaction] {
         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
-        return transactions
+        return transactions.filter { filter.matches($0) }
     }
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {

@@ -36,6 +36,98 @@ struct SwiftDataTransactionsProviderTests {
         #expect(result[1] == older)
     }
 
+    // MARK: - fetchTransactions(filter:) — category
+
+    @Test
+    func fetchTransactions_withSingleCategoryFilter_returnsOnlyMatchingTransactions() async throws {
+        let grocery = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .distantPast)
+        let dining = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
+        try await sut.addTransactions([grocery, dining])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: [Category.groceries.id]))
+
+        #expect(result == [grocery])
+    }
+
+    @Test
+    func fetchTransactions_withMultipleCategoryFilter_returnsAllMatchingTransactions() async throws {
+        let grocery = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .distantPast)
+        let dining = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .now)
+        let rent = Transaction(id: "3", amount: 1200, vendor: "City Apt", categoryId: Category.rent.id, date: .distantFuture)
+        try await sut.addTransactions([grocery, dining, rent])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: [Category.groceries.id, Category.dining.id]))
+
+        #expect(result == [dining, grocery])
+    }
+
+    @Test
+    func fetchTransactions_withEmptyCategoryFilter_returnsNoTransactions() async throws {
+        let grocery = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .now)
+        try await sut.addTransactions([grocery])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: []))
+
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func fetchTransactions_withNilCategoryFilter_returnsAllTransactions() async throws {
+        let grocery = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .distantPast)
+        let dining = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
+        try await sut.addTransactions([grocery, dining])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: nil))
+
+        #expect(result == [dining, grocery])
+    }
+
+    // MARK: - fetchTransactions(filter:) — date range
+
+    @Test
+    func fetchTransactions_withDateRangeFilter_returnsOnlyTransactionsInRange() async throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let jan = calendar.date(from: DateComponents(year: 2026, month: 1, day: 15))!
+        let feb = calendar.date(from: DateComponents(year: 2026, month: 2, day: 15))!
+        let mar = calendar.date(from: DateComponents(year: 2026, month: 3, day: 15))!
+
+        try await sut.addTransactions([
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: Category.other.id, date: jan),
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: Category.other.id, date: feb),
+            Transaction(id: "3", amount: 30, vendor: "C", categoryId: Category.other.id, date: mar),
+        ])
+
+        let start = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+        let end = calendar.date(from: DateComponents(year: 2026, month: 2, day: 28))!
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(dateRange: start...end))
+
+        #expect(result.map(\.id) == ["2", "1"])
+    }
+
+    // MARK: - fetchTransactions(filter:) — combined
+
+    @Test
+    func fetchTransactions_withCategoryAndDateFilter_appliesBothConditions() async throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let jan = calendar.date(from: DateComponents(year: 2026, month: 1, day: 15))!
+        let feb = calendar.date(from: DateComponents(year: 2026, month: 2, day: 15))!
+
+        try await sut.addTransactions([
+            Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: jan),
+            Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: jan),
+            Transaction(id: "3", amount: 30, vendor: "Trader Joe's", categoryId: Category.groceries.id, date: feb),
+        ])
+
+        let start = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+        let end = calendar.date(from: DateComponents(year: 2026, month: 1, day: 31))!
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(
+            categoryIds: [Category.groceries.id],
+            dateRange: start...end
+        ))
+
+        #expect(result.map(\.id) == ["1"])
+    }
+
     // MARK: - addTransactions(_:)
 
     @Test

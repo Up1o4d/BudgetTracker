@@ -9,8 +9,20 @@ actor SwiftDataTransactionsProvider: TransactionsProviderProtocol {
         self.modelContainer = modelContainer
     }
 
-    func fetchTransactions() async throws -> [Transaction] {
+    func fetchTransactions(filter: TransactionFilter) async throws -> [Transaction] {
+        let categoryIds = filter.categoryIds.map(Array.init) ?? []
+        let filterByCategory = filter.categoryIds != nil
+        let startDate = filter.dateRange?.lowerBound ?? .distantPast
+        let endDate = filter.dateRange?.upperBound ?? .distantFuture
+        let filterByDate = filter.dateRange != nil
+
+        let predicate = #Predicate<StoredTransaction> { tx in
+            (!filterByCategory || categoryIds.contains(tx.categoryId)) &&
+            (!filterByDate || (tx.date >= startDate && tx.date <= endDate))
+        }
+
         let descriptor = FetchDescriptor<StoredTransaction>(
+            predicate: predicate,
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
 

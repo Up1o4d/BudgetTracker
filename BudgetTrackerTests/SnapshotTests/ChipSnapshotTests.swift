@@ -8,7 +8,7 @@ struct ChipSnapshotTests {
     @Test
     func groceries_light() {
         let category = Category.groceries
-        let view = Chip(systemImage: category.symbolName, text: category.name, iconColor: Color(hex: category.colorHex))
+        let view = Chip(text: category.name, systemImage: category.symbolName, iconColor: Color(hex: category.colorHex))
             .frame(width: 200, height: 44)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
     }
@@ -16,7 +16,7 @@ struct ChipSnapshotTests {
     @Test
     func groceries_dark() {
         let category = Category.groceries
-        let view = Chip(systemImage: category.symbolName, text: category.name, iconColor: Color(hex: category.colorHex))
+        let view = Chip(text: category.name, systemImage: category.symbolName, iconColor: Color(hex: category.colorHex))
             .frame(width: 200, height: 44)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
     }

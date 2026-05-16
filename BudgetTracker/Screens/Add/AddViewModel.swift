@@ -2,6 +2,7 @@ import Foundation
 
 @Observable
 final class AddViewModel {
+    enum LoadingState { case initial, loading, idle, error, empty }
     let transactionsProvider: any TransactionsProviderProtocol
 
     var loadingState: LoadingState = .idle
