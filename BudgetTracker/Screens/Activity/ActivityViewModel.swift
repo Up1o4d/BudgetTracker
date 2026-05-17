@@ -5,13 +5,13 @@ final class ActivityViewModel {
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
 
-    private(set) var transactionsState: DataState<Transaction> = .initial
-    private(set) var categoriesState: DataState<Category> = .initial
+    private(set) var transactionsState: DataState<Transaction> = .init()
+    private(set) var categoriesState: DataState<Category> = .init()
 
     private(set) var filterCategoryIds: Set<String> = []
 
     var viewLoadingState: LoadingState {
-        .merged(transactionsState.viewLoadingState, categoriesState.viewLoadingState)
+        .merged(transactionsState.loadingState, categoriesState.loadingState)
     }
 
     var transactionsByDate: [Date: [Transaction]] {
@@ -57,7 +57,7 @@ final class ActivityViewModel {
         )
     }
 
-    // Returned so tests can await completion; production callers discard it.
+    /// Returned so tests can await completion; production callers discard it.
     @discardableResult
     func toggleFilterCategory(_ category: Category) -> Task<Void, Never> {
         if filterCategoryIds.contains(category.id) {

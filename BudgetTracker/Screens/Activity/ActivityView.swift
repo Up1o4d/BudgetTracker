@@ -5,13 +5,17 @@ struct ActivityView: View {
 
     var body: some View {
         Group {
-            switch viewModel.viewLoadingState {
-            case .loading:
-                ProgressView()
-            case .idle:
-                idleStateView
-            case .error:
-                ContentUnavailableView("screen.activity.error", systemImage: "exclamationmark.triangle")
+            if viewModel.transactionsState.data.isEmpty && viewModel.categoriesState.data.isEmpty {
+                switch viewModel.viewLoadingState {
+                case .loading:
+                    ProgressView()
+                case .idle:
+                    ContentUnavailableView("screen.activity.empty", systemImage: "exclamationmark.triangle")
+                case .error:
+                    ContentUnavailableView("screen.activity.error", systemImage: "exclamationmark.triangle")
+                }
+            } else {
+                loadedStateView
             }
         }
         .defaultScreenStyle()
@@ -21,7 +25,7 @@ struct ActivityView: View {
         }
     }
 
-    var idleStateView: some View {
+    var loadedStateView: some View {
         VStack {
             ScrollView(.horizontal) {
                 HStack {
