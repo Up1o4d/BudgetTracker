@@ -4,6 +4,7 @@ import Foundation
 final class ActivityViewModel {
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
+    private var successfullyFinishedInitialLoad: Bool = false
 
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
@@ -11,7 +12,8 @@ final class ActivityViewModel {
     private(set) var filterCategoryIds: Set<String> = []
 
     var viewLoadingState: LoadingState {
-        .merged(transactionsState.loadingState, categoriesState.loadingState)
+        guard !successfullyFinishedInitialLoad else { return .idle }
+        return LoadingState.merged(transactionsState.loadingState, categoriesState.loadingState)
     }
 
     var transactionsByDate: [Date: [Transaction]] {
@@ -51,10 +53,13 @@ final class ActivityViewModel {
     }
 
     func loadData() async {
-        _ = await (
-            loadTransactions(),
-            loadCategories()
-        )
+        async let transactionsCall: Void = loadTransactions()
+        async let categoriesCall: Void = loadCategories()
+        _ = await (transactionsCall, categoriesCall)
+
+        if viewLoadingState == .idle {
+            successfullyFinishedInitialLoad = true
+        }
     }
 
     /// Returned so tests can await completion; production callers discard it.
