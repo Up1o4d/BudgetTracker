@@ -13,12 +13,12 @@ struct BudgetTrackerApp: App {
     let appDependencies: AppDependencies
 
     init() {
-        // do {
-        //    appDependencies = try .swiftData()
-        // } catch {
-        //    fatalError("Failed to create ModelContainer: \(error)")
-        // }
-        appDependencies = .inMemory()
+        do {
+            appDependencies = try .swiftData()
+        } catch {
+            fatalError("Failed to create ModelContainer: \(error)")
+        }
+        // appDependencies = .inMemory()
     }
 
     var body: some Scene {
