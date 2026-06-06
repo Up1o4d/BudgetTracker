@@ -9,4 +9,6 @@ actor InMemoryCategoriesProvider: CategoriesProviderProtocol {
         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
         return categories
     }
+
+    func addCategories(_ categories: [Category]) async throws {}
 }

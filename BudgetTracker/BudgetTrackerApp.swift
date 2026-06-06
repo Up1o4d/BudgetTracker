@@ -23,7 +23,7 @@ struct BudgetTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(appDependencies: appDependencies)
+            RootView(viewModel: RootViewModel(appDependencies: appDependencies))
         }
     }
 }

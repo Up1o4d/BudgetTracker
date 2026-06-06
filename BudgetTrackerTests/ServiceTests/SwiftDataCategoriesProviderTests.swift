@@ -5,7 +5,6 @@ import Testing
 
 struct SwiftDataCategoriesProviderTests {
     let modelContainer: ModelContainer
-    let userDefaults: UserDefaults
     let sut: SwiftDataCategoriesProvider
 
     init() throws {
@@ -13,34 +12,46 @@ struct SwiftDataCategoriesProviderTests {
             for: StoredCategory.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
-        userDefaults = UserDefaults(suiteName: UUID().uuidString)!
-        sut = SwiftDataCategoriesProvider(modelContainer: modelContainer, userDefaults: userDefaults)
+        sut = SwiftDataCategoriesProvider(modelContainer: modelContainer)
     }
 
     // MARK: - fetchCategories()
 
     @Test
-    func fetchCategories_seedsAllDefaultCategories_onFirstCall() async throws {
+    func fetchCategories_returnsEmpty_whenNoCategoriesAdded() async throws {
+        let result = try await sut.fetchCategories()
+
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func fetchCategories_returnsAddedCategories() async throws {
+        try await sut.addCategories(Category.all)
+
         let result = try await sut.fetchCategories()
 
         #expect(result.count == Category.all.count)
         #expect(Set(result.map(\.id)) == Set(Category.all.map(\.id)))
     }
 
+    // MARK: - addCategories(_:)
+
     @Test
-    func fetchCategories_doesNotDuplicateCategories_onSubsequentCalls() async throws {
-        _ = try await sut.fetchCategories()
+    func addCategories_persistsCategories() async throws {
+        try await sut.addCategories(Category.all)
+
         let result = try await sut.fetchCategories()
 
         #expect(result.count == Category.all.count)
     }
 
     @Test
-    func fetchCategories_skipsSeeding_whenAlreadyMarkedSeeded() async throws {
-        userDefaults.set(true, forKey: "categoriesSeeded")
+    func addCategories_appendsOnSubsequentCalls() async throws {
+        try await sut.addCategories(Category.all)
+        try await sut.addCategories(Category.all)
 
         let result = try await sut.fetchCategories()
 
-        #expect(result.isEmpty)
+        #expect(result.count == Category.all.count * 2)
     }
 }
