@@ -10,9 +10,10 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if viewModel.isLoading {
+            switch viewModel.state {
+            case .loading:
                 ProgressView()
-            } else {
+            case .idle:
                 TabView(selection: router.selectedTabBinding) {
                     ForEach(Tab.allCases, id: \.self) { tab in
                         NavigationStack(path: router.navigationPathBinding(for: tab)) {
@@ -23,7 +24,18 @@ struct RootView: View {
                         .tag(tab)
                     }
                 }
-                // TODO: - Add navigationDestination to resolve navigation screens
+            // TODO: - Add navigationDestination to resolve navigation screens
+            case .error:
+                // TODO: Localize these strings
+                ContentUnavailableView {
+                    Label("Something went wrong", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text("App failed to initialize properly")
+                } actions: {
+                    Button("Retry") {
+                        Task { await viewModel.runAppSetup() }
+                    }
+                }
             }
         }
         .defaultScreenStyle()
@@ -37,7 +49,8 @@ struct RootView: View {
         case .activity:
             ActivityView(viewModel: .init(
                 transactionsProvider: viewModel.appDependencies.transactionsProvider,
-                categoriesProvider: viewModel.appDependencies.categoriesProvider
+                categoriesProvider: viewModel.appDependencies.categoriesProvider,
+                appSettings: viewModel.appDependencies.appSettings
             ))
         case .add: Text("Add")
             AddView(viewModel: .init(

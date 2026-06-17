@@ -3,11 +3,13 @@ import SwiftData
 struct AppDependencies {
     let transactionsProvider: TransactionsProviderProtocol
     let categoriesProvider: CategoriesProviderProtocol
+    let appSettings: any AppSettingsProtocol
 
     static func inMemory() -> AppDependencies {
         AppDependencies(
             transactionsProvider: InMemoryTransactionsProvider(),
-            categoriesProvider: InMemoryCategoriesProvider()
+            categoriesProvider: InMemoryCategoriesProvider(),
+            appSettings: InMemoryAppSettings()
         )
     }
 
@@ -16,7 +18,8 @@ struct AppDependencies {
 
         return AppDependencies(
             transactionsProvider: SwiftDataTransactionsProvider(modelContainer: modelContainer),
-            categoriesProvider: SwiftDataCategoriesProvider(modelContainer: modelContainer)
+            categoriesProvider: SwiftDataCategoriesProvider(modelContainer: modelContainer),
+            appSettings: AppSettings()
         )
     }
 }

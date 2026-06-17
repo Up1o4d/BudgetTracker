@@ -10,7 +10,7 @@ struct ActivityViewModelTests {
     init() {
         transactionsProvider = MockTransactionsProvider()
         categoriesProvider = MockCategoriesProvider()
-        sut = ActivityViewModel(transactionsProvider: transactionsProvider, categoriesProvider: categoriesProvider)
+        sut = ActivityViewModel(transactionsProvider: transactionsProvider, categoriesProvider: categoriesProvider, appSettings: InMemoryAppSettings())
     }
 
     // MARK: - Initial state

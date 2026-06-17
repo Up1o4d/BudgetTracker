@@ -56,7 +56,7 @@ struct ActivityView: View {
                             Spacer()
                             Text(
                                 transaction.amount,
-                                format: .currency(code: Locale.current.currency?.identifier ?? "USD")
+                                format: .currency(code: viewModel.currency)
                             )
                         }
                     }
@@ -73,5 +73,5 @@ struct ActivityView: View {
 }
 
 #Preview {
-    ActivityView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider(), categoriesProvider: InMemoryCategoriesProvider()))
+    ActivityView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider(), categoriesProvider: InMemoryCategoriesProvider(), appSettings: InMemoryAppSettings()))
 }

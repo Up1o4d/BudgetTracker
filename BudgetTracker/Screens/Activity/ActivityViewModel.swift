@@ -4,6 +4,7 @@ import Foundation
 final class ActivityViewModel {
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
+    private let appSettings: any AppSettingsProtocol
     private var successfullyFinishedInitialLoad: Bool = false
 
     private(set) var transactionsState: DataState<Transaction> = .init()
@@ -24,12 +25,16 @@ final class ActivityViewModel {
         TransactionFilter(categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds)
     }
 
+    var currency: String { appSettings.currency }
+
     init(
         transactionsProvider: any TransactionsProviderProtocol,
-        categoriesProvider: any CategoriesProviderProtocol
+        categoriesProvider: any CategoriesProviderProtocol,
+        appSettings: any AppSettingsProtocol
     ) {
         self.transactionsProvider = transactionsProvider
         self.categoriesProvider = categoriesProvider
+        self.appSettings = appSettings
     }
 
     private func loadTransactions() async {

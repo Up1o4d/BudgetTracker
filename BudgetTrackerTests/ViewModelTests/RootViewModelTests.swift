@@ -4,18 +4,18 @@ import Testing
 
 struct RootViewModelTests {
     let categoriesProvider: MockCategoriesProvider
-    let userDefaults: UserDefaults
+    let appSettings: InMemoryAppSettings
     let sut: RootViewModel
 
     init() {
         categoriesProvider = MockCategoriesProvider()
-        userDefaults = UserDefaults(suiteName: UUID().uuidString)!
+        appSettings = InMemoryAppSettings()
         sut = RootViewModel(
             appDependencies: AppDependencies(
                 transactionsProvider: MockTransactionsProvider(),
-                categoriesProvider: categoriesProvider
-            ),
-            userDefaults: userDefaults
+                categoriesProvider: categoriesProvider,
+                appSettings: appSettings
+            )
         )
     }
 
@@ -30,7 +30,7 @@ struct RootViewModelTests {
 
     @Test
     func runAppSetup_doesNotSeedCategories_whenAlreadyRun() async {
-        userDefaults.set(true, forKey: "didRunFirstRunSetup")
+        appSettings.isFirstLaunch = false
 
         await sut.runAppSetup()
 
@@ -41,7 +41,7 @@ struct RootViewModelTests {
     func runAppSetup_marksFirstRunComplete_afterSeeding() async {
         await sut.runAppSetup()
 
-        #expect(userDefaults.bool(forKey: "didRunFirstRunSetup"))
+        #expect(!appSettings.isFirstLaunch)
     }
 
     @Test
