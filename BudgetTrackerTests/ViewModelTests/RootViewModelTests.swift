@@ -30,7 +30,7 @@ struct RootViewModelTests {
 
     @Test
     func runAppSetup_doesNotSeedCategories_whenAlreadyRun() async {
-        appSettings.isFirstLaunch = false
+        appSettings.didSeedCategories = true
 
         await sut.runAppSetup()
 
@@ -41,13 +41,13 @@ struct RootViewModelTests {
     func runAppSetup_marksFirstRunComplete_afterSeeding() async {
         await sut.runAppSetup()
 
-        #expect(!appSettings.isFirstLaunch)
+        #expect(appSettings.didSeedCategories)
     }
 
     @Test
     func runAppSetup_setsIsLoadingFalse_whenComplete() async {
         await sut.runAppSetup()
 
-        #expect(!sut.isLoading)
+        #expect(sut.state != .loading)
     }
 }

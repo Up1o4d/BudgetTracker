@@ -17,7 +17,7 @@ final class RootViewModel {
         do {
             if !appSettings.didSeedCategories {
                 try await appDependencies.categoriesProvider.addCategories(Category.all)
-                appSettings.didSeedCategories = false
+                appSettings.didSeedCategories = true
             }
 
             if !appSettings.didSetCurrency {
