@@ -19,6 +19,10 @@ final class ActivityViewModel {
         return LoadingState.merged(transactionsState.loadingState, categoriesState.loadingState)
     }
 
+    private var transactionFilter: TransactionFilter {
+        TransactionFilter(categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds)
+    }
+
     private var categoriesById: [String: Category] {
         Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
     }
@@ -34,10 +38,6 @@ final class ActivityViewModel {
 
     var transactionCategoriesByDate: [Date: [TransactionCategory]] {
         Dictionary(grouping: transactionCategories, by: { Calendar.current.startOfDay(for: $0.transaction.date) })
-    }
-
-    private var transactionFilter: TransactionFilter {
-        TransactionFilter(categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds)
     }
 
     var currency: String {
@@ -81,6 +81,13 @@ final class ActivityViewModel {
 
         if viewLoadingState == .idle {
             successfullyFinishedInitialLoad = true
+        }
+    }
+
+    func calculateMoneySpent(on date: Date) -> Decimal {
+        guard let transactions = transactionCategoriesByDate[date] else { return 0 }
+        return transactions.reduce(0) { partialResult, transactionCategory in
+            partialResult + transactionCategory.transaction.amount
         }
     }
 

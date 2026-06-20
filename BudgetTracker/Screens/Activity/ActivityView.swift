@@ -22,7 +22,7 @@ struct ActivityView: View {
         }
     }
 
-    var categoriesPickerView: some View {
+    private var categoriesPickerView: some View {
         ScrollView(.horizontal) {
             HStack {
                 Button(action: { viewModel.resetFilterCategories() }) {
@@ -46,10 +46,16 @@ struct ActivityView: View {
         }
     }
 
-    var transactionsListView: some View {
+    private var transactionsListView: some View {
         List {
             ForEach(viewModel.transactionCategoriesByDate.keys.sorted(by: >), id: \.self) { date in
-                Section(header: Text(date, style: .date).textStyle(.eyebrow)) {
+                Section(
+                    header: TransactionListSectionHeader(
+                        date: date,
+                        moneySpent: viewModel.calculateMoneySpent(on: date),
+                        currency: viewModel.currency
+                    )
+                ) {
                     ForEach(viewModel.transactionCategoriesByDate[date] ?? [], id: \.transaction) { val in
                         TransactionListCell(
                             transaction: val.transaction,
