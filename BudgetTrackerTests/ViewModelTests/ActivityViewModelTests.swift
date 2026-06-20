@@ -138,10 +138,10 @@ struct ActivityViewModelTests {
         #expect(sut.transactionsState.data.count == 2)
     }
 
-    // MARK: - transactionsByDate
+    // MARK: - transactionCategoriesByDate
 
     @Test
-    func transactionsByDate_groupsByCalendarDay() async throws {
+    func transactionCategoriesByDate_groupsByCalendarDay() async throws {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: today))
@@ -153,7 +153,7 @@ struct ActivityViewModelTests {
         ]
         await sut.loadData()
 
-        #expect(sut.transactionsByDate[today]?.count == 2)
-        #expect(sut.transactionsByDate[yesterday]?.count == 1)
+        #expect(sut.transactionCategoriesByDate[today]?.count == 2)
+        #expect(sut.transactionCategoriesByDate[yesterday]?.count == 1)
     }
 }

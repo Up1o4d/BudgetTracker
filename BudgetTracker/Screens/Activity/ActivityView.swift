@@ -48,21 +48,14 @@ struct ActivityView: View {
 
     var transactionsListView: some View {
         List {
-            ForEach(viewModel.transactionsByDate.keys.sorted(by: >), id: \.self) { date in
+            ForEach(viewModel.transactionCategoriesByDate.keys.sorted(by: >), id: \.self) { date in
                 Section(header: Text(date, style: .date).textStyle(.eyebrow)) {
-                    let transactions = viewModel.transactionsByDate[date] ?? []
-                    ForEach(transactions) { transaction in
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text(transaction.vendor)
-                                    .textStyle(.bodyMD)
-                                Spacer()
-                                Text(
-                                    transaction.amount,
-                                    format: .currency(code: viewModel.currency)
-                                )
-                            }
-                        }
+                    ForEach(viewModel.transactionCategoriesByDate[date] ?? [], id: \.transaction) { val in
+                        TransactionListCell(
+                            transaction: val.transaction,
+                            category: val.category,
+                            currency: viewModel.currency
+                        )
                     }
                     .listRowBackground(Color.bgSurface)
                     .listRowSeparatorTint(Color.borderSubtle)
@@ -79,5 +72,9 @@ struct ActivityView: View {
 }
 
 #Preview {
-    ActivityView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider(), categoriesProvider: InMemoryCategoriesProvider(), appSettings: InMemoryAppSettings()))
+    ActivityView(viewModel: .init(
+        transactionsProvider: InMemoryTransactionsProvider(),
+        categoriesProvider: InMemoryCategoriesProvider(),
+        appSettings: InMemoryAppSettings()
+    ))
 }

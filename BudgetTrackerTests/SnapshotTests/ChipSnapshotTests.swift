@@ -6,7 +6,7 @@ import Testing
 @Suite(.snapshots(record: .missing))
 struct ChipSnapshotTests {
     @Test
-    func groceries_light() {
+    func chip_groceries_light() {
         let category = Category.groceries
         let view = Chip(text: category.name, systemImage: category.symbolName, iconColor: Color(hex: category.colorHex))
             .frame(width: 200, height: 44)
@@ -14,7 +14,7 @@ struct ChipSnapshotTests {
     }
 
     @Test
-    func groceries_dark() {
+    func chip_groceries_dark() {
         let category = Category.groceries
         let view = Chip(text: category.name, systemImage: category.symbolName, iconColor: Color(hex: category.colorHex))
             .frame(width: 200, height: 44)

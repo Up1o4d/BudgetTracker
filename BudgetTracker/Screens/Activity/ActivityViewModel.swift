@@ -2,6 +2,8 @@ import Foundation
 
 @Observable
 final class ActivityViewModel {
+    typealias TransactionCategory = (transaction: Transaction, category: Category)
+
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
     private let appSettings: any AppSettingsProtocol
@@ -17,15 +19,30 @@ final class ActivityViewModel {
         return LoadingState.merged(transactionsState.loadingState, categoriesState.loadingState)
     }
 
-    var transactionsByDate: [Date: [Transaction]] {
-        Dictionary(grouping: transactionsState.data, by: { Calendar.current.startOfDay(for: $0.date) })
+    private var categoriesById: [String: Category] {
+        Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
+    }
+
+    private var transactionCategories: [TransactionCategory] {
+        return transactionsState.data.map {
+            (
+                transaction: $0,
+                category: categoriesById[$0.categoryId] ?? Category.unknown
+            )
+        }
+    }
+
+    var transactionCategoriesByDate: [Date: [TransactionCategory]] {
+        Dictionary(grouping: transactionCategories, by: { Calendar.current.startOfDay(for: $0.transaction.date) })
     }
 
     private var transactionFilter: TransactionFilter {
         TransactionFilter(categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds)
     }
 
-    var currency: String { appSettings.currency }
+    var currency: String {
+        appSettings.currency
+    }
 
     init(
         transactionsProvider: any TransactionsProviderProtocol,

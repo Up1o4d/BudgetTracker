@@ -15,5 +15,12 @@ nonisolated extension Category {
     static let utilities = Category(id: "utilities", name: String(localized: "category.utilities"), symbolName: "bolt.fill", colorHex: "#FFCC00")
     static let other = Category(id: "other", name: String(localized: "category.other"), symbolName: "ellipsis.circle", colorHex: "#8E8E93")
 
+    static let unknown = Category(
+        id: "unknown",
+        name: "Unknown", // TODO: Localize this
+        symbolName: "questionmark",
+        colorHex: "#FFFFFF"
+    )
+
     static let all: [Category] = [.groceries, .rent, .transport, .dining, .utilities, .other]
 }
