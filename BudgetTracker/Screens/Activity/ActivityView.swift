@@ -4,11 +4,17 @@ struct ActivityView: View {
     @State var viewModel: ActivityViewModel
 
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
             switch viewModel.viewLoadingState {
             case .loading:
                 ProgressView()
             case .idle:
+                AppTextField(
+                    iconSystemName: "magnifyingglass",
+                    placeholderText: "Search vendors", // TODO: localize this
+                    text: $viewModel.searchString
+                )
+                .padding(.horizontal, 16)
                 categoriesPickerView
                 transactionsListView
             case .error:

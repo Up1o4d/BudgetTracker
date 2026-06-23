@@ -15,10 +15,13 @@ actor SwiftDataTransactionsProvider: TransactionsProviderProtocol {
         let startDate = filter.dateRange?.lowerBound ?? .distantPast
         let endDate = filter.dateRange?.upperBound ?? .distantFuture
         let filterByDate = filter.dateRange != nil
+        let vendorSubstring = filter.vendorSubstring ?? ""
+        let filterByVendor = !(filter.vendorSubstring?.isEmpty ?? true)
 
         let predicate = #Predicate<StoredTransaction> { tx in
             (!filterByCategory || categoryIds.contains(tx.categoryId)) &&
-            (!filterByDate || (tx.date >= startDate && tx.date <= endDate))
+            (!filterByDate || (tx.date >= startDate && tx.date <= endDate)) &&
+            (!filterByVendor || tx.vendor.localizedStandardContains(vendorSubstring))
         }
 
         let descriptor = FetchDescriptor<StoredTransaction>(

@@ -7,12 +7,28 @@ final class ActivityViewModel {
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
     private let appSettings: any AppSettingsProtocol
+
     private var successfullyFinishedInitialLoad: Bool = false
+    private var searchTask: Task<Void, Never>?
+    private var loadTransactionsTask: Task<Void, Never>?
 
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
     private(set) var filterCategoryIds: Set<String> = []
+
+    var searchString: String = "" {
+        didSet {
+            guard searchString != oldValue else { return }
+            searchTask?.cancel()
+            searchTask = Task {
+                do {
+                    try await Task.sleep(for: .milliseconds(300))
+                    await loadTransactions()
+                } catch {}
+            }
+        }
+    }
 
     var viewLoadingState: LoadingState {
         guard !successfullyFinishedInitialLoad else { return .idle }
@@ -20,7 +36,10 @@ final class ActivityViewModel {
     }
 
     private var transactionFilter: TransactionFilter {
-        TransactionFilter(categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds)
+        TransactionFilter(
+            categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds,
+            vendorSubstring: searchString.isEmpty ? nil : searchString
+        )
     }
 
     private var categoriesById: [String: Category] {
@@ -55,12 +74,22 @@ final class ActivityViewModel {
     }
 
     private func loadTransactions() async {
-        transactionsState = DataState(loadingState: .loading, data: transactionsState.data)
-        do {
-            let data = try await transactionsProvider.fetchTransactions(filter: transactionFilter)
-            transactionsState = DataState(loadingState: .idle, data: data)
-        } catch {
-            transactionsState = DataState(loadingState: .error, data: transactionsState.data, error: error)
+        // Switching between filters quickly can trigger multiple requests
+        // Cancel the previous request if it exists, so that new data doesn't arrive out of order
+        loadTransactionsTask?.cancel()
+        loadTransactionsTask = Task {
+            transactionsState = DataState(loadingState: .loading, data: transactionsState.data)
+            do {
+                let data = try await transactionsProvider.fetchTransactions(filter: transactionFilter)
+                guard !Task.isCancelled else { return }
+                transactionsState = DataState(loadingState: .idle, data: data)
+            } catch is CancellationError {
+                // Task got cancelled, shouldn't update state
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                transactionsState = DataState(loadingState: .error, data: transactionsState.data, error: error)
+            }
         }
     }
 

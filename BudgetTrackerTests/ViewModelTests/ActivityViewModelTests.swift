@@ -138,6 +138,39 @@ struct ActivityViewModelTests {
         #expect(sut.transactionsState.data.count == 2)
     }
 
+    // MARK: - searchString
+
+    @Test
+    func searchString_reloadsTransactionsFilteredByVendor() async throws {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: "groceries", date: .now),
+            Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: "dining", date: .now),
+        ]
+        await sut.loadData()
+
+        sut.searchString = "Whole"
+        try await Task.sleep(for: .milliseconds(400))
+
+        #expect(sut.transactionsState.data.count == 1)
+        #expect(sut.transactionsState.data.first?.vendor == "Whole Foods")
+    }
+
+    @Test
+    func searchString_emptyString_returnsAllTransactions() async throws {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: "groceries", date: .now),
+            Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: "dining", date: .now),
+        ]
+        await sut.loadData()
+
+        sut.searchString = "Whole"
+        try await Task.sleep(for: .milliseconds(400))
+        sut.searchString = ""
+        try await Task.sleep(for: .milliseconds(400))
+
+        #expect(sut.transactionsState.data.count == 2)
+    }
+
     // MARK: - transactionCategoriesByDate
 
     @Test

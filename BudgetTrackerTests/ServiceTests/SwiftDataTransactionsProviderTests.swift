@@ -104,6 +104,40 @@ struct SwiftDataTransactionsProviderTests {
         #expect(result.map(\.id) == ["2", "1"])
     }
 
+    // MARK: - fetchTransactions(filter:) — vendor
+
+    @Test
+    func fetchTransactions_withVendorFilter_returnsOnlyMatchingTransactions() async throws {
+        let wholeFoods = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .distantPast)
+        let sushiBar = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
+        try await sut.addTransactions([wholeFoods, sushiBar])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(vendorSubstring: "Whole"))
+
+        #expect(result == [wholeFoods])
+    }
+
+    @Test
+    func fetchTransactions_withVendorFilter_isCaseInsensitive() async throws {
+        let wholeFoods = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .now)
+        try await sut.addTransactions([wholeFoods])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(vendorSubstring: "whole"))
+
+        #expect(result == [wholeFoods])
+    }
+
+    @Test
+    func fetchTransactions_withNilVendorFilter_returnsAllTransactions() async throws {
+        let wholeFoods = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .distantPast)
+        let sushiBar = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
+        try await sut.addTransactions([wholeFoods, sushiBar])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(vendorSubstring: nil))
+
+        #expect(result == [sushiBar, wholeFoods])
+    }
+
     // MARK: - fetchTransactions(filter:) — combined
 
     @Test
@@ -126,6 +160,21 @@ struct SwiftDataTransactionsProviderTests {
         ))
 
         #expect(result.map(\.id) == ["1"])
+    }
+
+    @Test
+    func fetchTransactions_withCategoryAndVendorFilter_appliesBothConditions() async throws {
+        let wholeFoodsGroceries = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .now)
+        let wholeFoodsDining = Transaction(id: "2", amount: 20, vendor: "Whole Foods Cafe", categoryId: Category.dining.id, date: .now)
+        let traderJoes = Transaction(id: "3", amount: 30, vendor: "Trader Joe's", categoryId: Category.groceries.id, date: .now)
+        try await sut.addTransactions([wholeFoodsGroceries, wholeFoodsDining, traderJoes])
+
+        let result = try await sut.fetchTransactions(filter: TransactionFilter(
+            categoryIds: [Category.groceries.id],
+            vendorSubstring: "Whole"
+        ))
+
+        #expect(result == [wholeFoodsGroceries])
     }
 
     // MARK: - addTransactions(_:)
