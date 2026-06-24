@@ -6,6 +6,7 @@ extension View {
         textStyle(.bodyMD)
             .foregroundStyle(Color.textPrimary)
             .tint(Color.accentLime)
-            .background(Color.bgCanvas)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.bgCanvas.ignoresSafeArea())
     }
 }

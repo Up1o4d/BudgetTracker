@@ -9,12 +9,7 @@ struct ActivityView: View {
             case .loading:
                 ProgressView()
             case .idle:
-                AppTextField(
-                    iconSystemName: "magnifyingglass",
-                    placeholderText: "Search vendors", // TODO: localize this
-                    text: $viewModel.searchString
-                )
-                .padding(.horizontal, 16)
+                searchField
                 categoriesPickerView
                 transactionsListView
             case .error:
@@ -26,6 +21,15 @@ struct ActivityView: View {
         .task {
             await viewModel.loadData()
         }
+    }
+
+    private var searchField: some View {
+        AppTextField(
+            iconSystemName: "magnifyingglass",
+            placeholderText: "Search vendors", // TODO: localize this
+            text: $viewModel.searchString
+        )
+        .padding(.horizontal, 16)
     }
 
     private var categoriesPickerView: some View {
