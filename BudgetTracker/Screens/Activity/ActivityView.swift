@@ -50,6 +50,7 @@ struct ActivityView: View {
             }
             .padding(.horizontal, 16)
         }
+        .scrollIndicators(.hidden)
     }
 
     private var transactionsListView: some View {

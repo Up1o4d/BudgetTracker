@@ -91,6 +91,7 @@ final class ActivityViewModel {
                 transactionsState = DataState(loadingState: .error, data: transactionsState.data, error: error)
             }
         }
+        await loadTransactionsTask?.value
     }
 
     private func loadCategories() async {

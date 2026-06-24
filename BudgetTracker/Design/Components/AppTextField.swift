@@ -22,6 +22,7 @@ struct AppTextField: View {
             }
             TextField(placeholderText, text: $text)
         }
+        .frame(height: 18)
         .padding()
         .background {
             RoundedRectangle(cornerRadius: 16)
@@ -40,6 +41,8 @@ struct AppTextField: View {
         AppTextField(iconSystemName: "magnifyingglass", placeholderText: "Lorem Ipsum", text: .constant(""))
         Spacer()
         AppTextField(placeholderText: "Lorem Ipsum", text: .constant(""))
+        Spacer()
+        AppTextField(iconSystemName: "magnifyingglass", placeholderText: "Lorem Ipsum", text: .constant("Inserted text"))
         Spacer()
     }
 }
