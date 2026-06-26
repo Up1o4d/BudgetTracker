@@ -61,7 +61,7 @@ extension Color {
         static let redBright = Color(hex: "#FF6B6B")
         static let redMuted = Color(hex: "#D1453B")
 
-        // Orange
+        /// Orange
         static let orange = Color(hex: "#FF8A65")
     }
 }

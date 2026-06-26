@@ -17,7 +17,7 @@ struct Chip: View {
             Text(text)
                 .textStyle(.chip)
         }
-        .padding(.vertical, 6)
+        .frame(height: 30)
         .padding(.horizontal, 12)
         .foregroundStyle(Color.textSecondary)
         .background(Capsule().foregroundStyle(Color.bgSurface))

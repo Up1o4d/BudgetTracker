@@ -18,13 +18,18 @@ struct RootView: View {
                     ForEach(Tab.allCases, id: \.self) { tab in
                         NavigationStack(path: router.navigationPathBinding(for: tab)) {
                             tabRoot(for: tab)
+                                .safeAreaPadding(.bottom, AppTabBar.height)
                                 .navigationBarTitleDisplayMode(.inline)
                         }
+                        .toolbar(.hidden, for: .tabBar)
                         .tabItem { Label(tab.name, systemImage: tab.systemImage) }
                         .tag(tab)
+                        // TODO: - Add navigationDestination to resolve navigation screens
                     }
                 }
-            // TODO: - Add navigationDestination to resolve navigation screens
+                .safeAreaInset(edge: .bottom) {
+                    AppTabBar(tabs: Tab.allCases, selectedTab: router.selectedTabBinding)
+                }
             case .error:
                 // TODO: Localize these strings
                 ContentUnavailableView {
