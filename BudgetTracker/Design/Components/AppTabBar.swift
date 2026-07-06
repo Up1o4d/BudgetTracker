@@ -95,5 +95,5 @@ struct AppTabBar: View {
 
 #Preview {
     @Previewable @State var selectedTab: Tab = .home
-    AppTabBar(tabs: Tab.allCases, selectedTab: $selectedTab)
+    AppTabBar(tabs: Tab.allCases, selectedTab: $selectedTab, addButtonAction: {})
 }

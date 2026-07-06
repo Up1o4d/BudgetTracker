@@ -28,7 +28,22 @@ struct RootView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    AppTabBar(tabs: Tab.allCases, selectedTab: router.selectedTabBinding)
+                    AppTabBar(
+                        tabs: Tab.allCases,
+                        selectedTab: router.selectedTabBinding,
+                        addButtonAction: { router.presentedSheet = .addTransaction }
+                    )
+                }
+                .sheet(item: router.presentedSheetBinding) { sheet in
+                    switch sheet {
+                    case .addTransaction:
+                        NavigationStack {
+                            AddView(viewModel: .init(
+                                transactionsProvider: viewModel.appDependencies.transactionsProvider,
+                                onSaved: { router.presentedSheet = nil }
+                            ))
+                        }
+                    }
                 }
             case .error:
                 // TODO: Localize these strings
@@ -61,10 +76,6 @@ struct RootView: View {
                 transactionsProvider: viewModel.appDependencies.transactionsProvider,
                 categoriesProvider: viewModel.appDependencies.categoriesProvider,
                 appSettings: viewModel.appDependencies.appSettings
-            ))
-        case .add:
-            AddView(viewModel: .init(
-                transactionsProvider: viewModel.appDependencies.transactionsProvider
             ))
         }
     }

@@ -1,13 +1,12 @@
 import SwiftUI
 
 enum Tab: CaseIterable, Hashable {
-    case home, activity, add
+    case home, activity
 
     var name: LocalizedStringKey {
         switch self {
         case .home: "screen.home.title"
         case .activity: "screen.activity.title"
-        case .add: "screen.add.title"
         }
     }
 
@@ -15,7 +14,6 @@ enum Tab: CaseIterable, Hashable {
         switch self {
         case .home: "house"
         case .activity: "list.bullet"
-        case .add: "plus.circle"
         }
     }
 }

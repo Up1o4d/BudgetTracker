@@ -1,7 +1,14 @@
 import SwiftUI
 
+enum AppSheet: Identifiable {
+    case addTransaction
+
+    var id: Self { self }
+}
+
 @Observable
 final class AppRouter {
+    var presentedSheet: AppSheet? = nil
     private var selectedTab: Tab = .home
     private var paths: [Tab: NavigationPath] = [:]
 
@@ -31,6 +38,13 @@ final class AppRouter {
         Binding(
             get: { self.paths[tab, default: NavigationPath()] },
             set: { self.paths[tab] = $0 }
+        )
+    }
+
+    var presentedSheetBinding: Binding<AppSheet?> {
+        Binding(
+            get: { self.presentedSheet },
+            set: { self.presentedSheet = $0 }
         )
     }
 }

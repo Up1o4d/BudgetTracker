@@ -23,8 +23,11 @@ final class AddViewModel {
         return amount
     }
 
-    init(transactionsProvider: any TransactionsProviderProtocol) {
+    private let onSaved: (() -> Void)?
+
+    init(transactionsProvider: any TransactionsProviderProtocol, onSaved: (() -> Void)? = nil) {
         self.transactionsProvider = transactionsProvider
+        self.onSaved = onSaved
     }
 
     func save() {
@@ -41,6 +44,7 @@ final class AddViewModel {
             loadingState = .loading
             try? await transactionsProvider.addTransactions([transaction])
             loadingState = .idle
+            onSaved?()
         }
     }
 }
