@@ -4,16 +4,49 @@ struct AppTabBar: View {
     static let height: CGFloat = 64.0
 
     private let tabs: [Tab]
-    @Binding private var selectedTab: Tab
 
-    init(tabs: [Tab], selectedTab: Binding<Tab>) {
+    @Binding private var selectedTab: Tab
+    private let addButtonAction: () -> Void
+
+    init(tabs: [Tab], selectedTab: Binding<Tab>, addButtonAction: @escaping () -> Void) {
         self.tabs = tabs
         _selectedTab = selectedTab
+        self.addButtonAction = addButtonAction
     }
 
     @Namespace private var highlightNamespace
 
     var body: some View {
+        HStack(spacing: 0) {
+            Spacer()
+
+            tabsView
+
+            Spacer()
+
+            addButton
+
+            Spacer()
+        }
+    }
+
+    private var addButton: some View {
+        Button(
+            action: addButtonAction,
+            label: {
+                let iconSize: CGFloat = 18
+                Image(systemName: "plus")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: iconSize, height: iconSize)
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(width: AppTabBar.height, height: AppTabBar.height)
+            }
+        )
+        .background(backgroundView)
+    }
+
+    private var tabsView: some View {
         HStack {
             ForEach(tabs, id: \.self) { tab in
                 buildTabItem(for: tab, isSelected: tab == selectedTab)
@@ -25,14 +58,16 @@ struct AppTabBar: View {
         }
         .padding(.horizontal, 32)
         .frame(height: AppTabBar.height)
-        .background(
-            Capsule()
-                .fill(Color.bgSurface)
-                .stroke(Color.borderSubtle, lineWidth: 1)
-        )
+        .background(backgroundView)
     }
 
-    func buildTabItem(for tab: Tab, isSelected: Bool) -> some View {
+    private var backgroundView: some View {
+        Capsule()
+            .fill(Color.bgSurface.opacity(0.95))
+            .stroke(Color.borderSubtle, lineWidth: 1)
+    }
+
+    private func buildTabItem(for tab: Tab, isSelected: Bool) -> some View {
         VStack {
             let iconSize: CGFloat = 25
             Image(systemName: tab.systemImage)
@@ -50,6 +85,7 @@ struct AppTabBar: View {
                     }
                 }
             Text(tab.name)
+                .fixedSize()
         }
         .foregroundStyle(isSelected ? Color.accentLime : Color.textSecondary)
         .textStyle(.tab)
