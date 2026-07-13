@@ -58,15 +58,70 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
         Transaction(id: "50", amount: 49.99, vendor: "Internet Provider", categoryId: Category.utilities.id, date: date(2026, 5, 3)),
     ]
 
+    private struct Subscription {
+        let filter: TransactionFilter
+        let continuation: AsyncStream<DataState<Transaction>>.Continuation
+        var lastData: [Transaction]
+    }
+
     private var transactions: [Transaction] = InMemoryTransactionsProvider.seed
+    private var streamRegistry: [UUID: Subscription] = [:]
 
     func fetchTransactions(filter: TransactionFilter) async throws -> [Transaction] {
         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
         return transactions.filter { filter.matches($0) }
     }
 
+    func transactionsStream(filter: TransactionFilter) async -> AsyncStream<DataState<Transaction>> {
+        let (stream, continuation) = AsyncStream.makeStream(of: DataState<Transaction>.self)
+        let id = UUID()
+
+        continuation.onTermination = { _ in
+            Task { await self.deregister(id) }
+        }
+
+        // First emission is always settled directly — only a write-triggered refresh
+        // interleaves a .loading pulse.
+        let settled = await settledDataState(for: filter, lastData: [])
+        streamRegistry[id] = Subscription(filter: filter, continuation: continuation, lastData: settled.data)
+        continuation.yield(settled)
+
+        return stream
+    }
+
     func addTransactions(_ newTransactions: [Transaction]) async throws {
         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
         transactions.append(contentsOf: newTransactions)
+
+        // The provider is the sole writer, so poking every registered stream here after
+        // appending is what keeps ActivityView's observation live. Future delete/edit paths
+        // must also go through the provider and poke the registry, or streams go stale.
+        //
+        // The refetch below goes through fetchTransactions, which has its own simulated
+        // network delay — so signal .loading immediately (carrying the last-known data so
+        // consumers never blank the list) before yielding the settled result once it lands.
+        for id in streamRegistry.keys {
+            guard let subscription = streamRegistry[id] else { continue }
+            subscription.continuation.yield(DataState(loadingState: .loading, data: subscription.lastData))
+
+            let settled = await settledDataState(for: subscription.filter, lastData: subscription.lastData)
+            streamRegistry[id]?.lastData = settled.data
+            streamRegistry[id]?.continuation.yield(settled)
+        }
+    }
+
+    private func deregister(_ id: UUID) {
+        streamRegistry.removeValue(forKey: id)
+    }
+
+    /// Routed through fetchTransactions so every read this provider reports carries the same
+    /// simulated network delay a real REST provider's refetch would have. On failure, carries
+    /// `lastData` forward so an `.error` emission never blanks a previously-loaded list.
+    private func settledDataState(for filter: TransactionFilter, lastData: [Transaction]) async -> DataState<Transaction> {
+        do {
+            return try DataState(loadingState: .idle, data: await fetchTransactions(filter: filter))
+        } catch {
+            return DataState(loadingState: .error, data: lastData, error: error)
+        }
     }
 }

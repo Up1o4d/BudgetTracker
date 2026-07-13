@@ -43,8 +43,8 @@ final class AddViewModel {
         Task {
             loadingState = .loading
             try? await transactionsProvider.addTransactions([transaction])
-            loadingState = .idle
             onSaved?()
+            loadingState = .idle
         }
     }
 }

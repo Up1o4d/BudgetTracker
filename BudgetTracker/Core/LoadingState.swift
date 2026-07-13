@@ -1,4 +1,4 @@
-enum LoadingState {
+nonisolated enum LoadingState {
     case loading, idle, error
 
     static func merged(_ states: LoadingState...) -> LoadingState {

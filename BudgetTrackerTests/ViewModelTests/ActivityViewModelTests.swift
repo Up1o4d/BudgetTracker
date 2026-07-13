@@ -61,7 +61,7 @@ struct ActivityViewModelTests {
     @Test
     func loadData_callsProvidersOnce() async {
         await sut.loadData()
-        #expect(transactionsProvider.fetchTransactionsCallCount == 1)
+        #expect(transactionsProvider.transactionsStreamCallCount == 1)
         #expect(categoriesProvider.fetchCategoriesCallCount == 1)
     }
 
@@ -136,6 +136,100 @@ struct ActivityViewModelTests {
         await sut.toggleFilterCategory(.groceries).value
         await sut.resetFilterCategories().value
         #expect(sut.transactionsState.data.count == 2)
+    }
+
+    // MARK: - live updates
+
+    @Test
+    func addTransactions_appearsWithoutReload() async throws {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
+        ]
+        await sut.loadData()
+        #expect(sut.transactionsState.data.count == 1)
+
+        try await transactionsProvider.addTransactions([
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
+        ])
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(sut.transactionsState.data.count == 2)
+    }
+
+    @Test
+    func addTransactions_doesNotDropLoadedContentIntoLoadingState() async throws {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
+        ]
+        await sut.loadData()
+
+        try await transactionsProvider.addTransactions([
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
+        ])
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(sut.viewLoadingState == .idle)
+        #expect(sut.transactionsState.loadingState == .idle)
+    }
+
+    @Test
+    func addTransactions_respectsActiveCategoryFilter() async throws {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
+        ]
+        await sut.loadData()
+        await sut.toggleFilterCategory(.groceries).value
+
+        try await transactionsProvider.addTransactions([
+            Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
+        ])
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(sut.transactionsState.data.count == 1)
+        #expect(sut.transactionsState.data.first?.categoryId == "groceries")
+    }
+
+    // MARK: - interim loading / error states (stream carries data forward)
+
+    @Test
+    func inFlightRefresh_keepsLoadedDataVisibleUntilSettledStateArrives() async throws {
+        let existing = Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now)
+        transactionsProvider.stubbedTransactions = [existing]
+        await sut.loadData()
+        #expect(sut.transactionsState.data == [existing])
+
+        // The provider signals a refetch is in flight, carrying its last-known data forward
+        // as the stream contract requires, before a new settled result is available.
+        transactionsProvider.emitLoading()
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(sut.transactionsState.loadingState == .loading)
+        #expect(sut.transactionsState.data == [existing])
+        // The full-screen spinner shouldn't come back once the initial load has finished.
+        #expect(sut.viewLoadingState == .idle)
+
+        let added = Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now)
+        try await transactionsProvider.addTransactions([added])
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(sut.transactionsState.loadingState == .idle)
+        #expect(Set(sut.transactionsState.data.map(\.id)) == Set([existing.id, added.id]))
+    }
+
+    @Test
+    func failedRefresh_keepsLoadedDataVisible() async throws {
+        let existing = Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now)
+        transactionsProvider.stubbedTransactions = [existing]
+        await sut.loadData()
+        #expect(sut.transactionsState.data == [existing])
+
+        transactionsProvider.emitError(NSError(domain: "test", code: 0))
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(sut.transactionsState.loadingState == .error)
+        #expect(sut.transactionsState.data == [existing])
+        // A background failure after a successful load must not tear the list down.
+        #expect(sut.viewLoadingState == .idle)
     }
 
     // MARK: - searchString

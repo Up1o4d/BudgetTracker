@@ -11,6 +11,7 @@ final class ActivityViewModel {
     private var successfullyFinishedInitialLoad: Bool = false
     private var searchTask: Task<Void, Never>?
     private var loadTransactionsTask: Task<Void, Never>?
+    private var observationTask: Task<Void, Never>?
 
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
@@ -75,20 +76,38 @@ final class ActivityViewModel {
 
     private func loadTransactions() async {
         // Switching between filters quickly can trigger multiple requests
-        // Cancel the previous request if it exists, so that new data doesn't arrive out of order
+        // Cancel the previous subscription if it exists, so that new data doesn't arrive out of order
         loadTransactionsTask?.cancel()
+        observationTask?.cancel()
+
         loadTransactionsTask = Task {
-            transactionsState = DataState(loadingState: .loading, data: transactionsState.data)
-            do {
-                let data = try await transactionsProvider.fetchTransactions(filter: transactionFilter)
+            // Mutate only the flag so the current data stays on screen while we resubscribe.
+            transactionsState.loadingState = .loading
+
+            let stream = await transactionsProvider.transactionsStream(filter: transactionFilter)
+            guard !Task.isCancelled else { return }
+
+            var iterator = stream.makeAsyncIterator()
+
+            // A provider may emit interim .loading states before settling (e.g. a REST
+            // provider mid-refetch) — keep applying those until we see a settled state,
+            // so `loadData()`'s initial-load check isn't left waiting on a `.loading`
+            // emission that already came and went. Every emission already carries the
+            // last-known data, so we can assign it verbatim.
+            while let state = await iterator.next() {
                 guard !Task.isCancelled else { return }
-                transactionsState = DataState(loadingState: .idle, data: data)
-            } catch is CancellationError {
-                // Task got cancelled, shouldn't update state
-                return
-            } catch {
-                guard !Task.isCancelled else { return }
-                transactionsState = DataState(loadingState: .error, data: transactionsState.data, error: error)
+                transactionsState = state
+                if state.loadingState != .loading { break }
+            }
+
+            // Subsequent emissions (inserts) are refreshes, not initial loads — they're
+            // consumed in the background so this task's `.value` only awaits the first
+            // settled one.
+            observationTask = Task {
+                while let state = await iterator.next() {
+                    guard !Task.isCancelled else { break }
+                    transactionsState = state
+                }
             }
         }
         await loadTransactionsTask?.value

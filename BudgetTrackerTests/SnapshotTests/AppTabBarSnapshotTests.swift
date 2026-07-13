@@ -10,14 +10,14 @@ struct AppTabBarSnapshotTests {
 
     @Test
     func appTabBar_homeSelected_light() {
-        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.home))
+        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.home), addButtonAction: {})
             .frame(width: 375, height: AppTabBar.height)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
     }
 
     @Test
     func appTabBar_homeSelected_dark() {
-        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.home))
+        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.home), addButtonAction: {})
             .frame(width: 375, height: AppTabBar.height)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
     }
@@ -26,14 +26,14 @@ struct AppTabBarSnapshotTests {
 
     @Test
     func appTabBar_activitySelected_light() {
-        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.activity))
+        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.activity), addButtonAction: {})
             .frame(width: 375, height: AppTabBar.height)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
     }
 
     @Test
     func appTabBar_activitySelected_dark() {
-        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.activity))
+        let view = AppTabBar(tabs: Tab.allCases, selectedTab: .constant(.activity), addButtonAction: {})
             .frame(width: 375, height: AppTabBar.height)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
     }
