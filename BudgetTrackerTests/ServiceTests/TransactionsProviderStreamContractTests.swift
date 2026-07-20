@@ -3,12 +3,14 @@ import Foundation
 import SwiftData
 import Testing
 
-/// Contract tests for `transactionsStream(filter:)`, run against every production provider
-/// so the observable behavior (initial emit, one settled re-emission per write, per-stream
-/// filtering) stays identical between them. Providers are free to interleave interim
-/// `.loading` emissions before a settled state (`InMemoryTransactionsProvider` does, to
-/// simulate a slow refetch) — tests below use `nextSettled()` wherever they want "the next
-/// real result" so they stay valid regardless of how many interim states precede it.
+/// Contract tests for the `transactionsStream()` / `fetchTransactions(uuid:filter:)` pair, run
+/// against every production provider so the observable behavior stays identical between them:
+/// the stream is a silent channel until the first `fetchTransactions` sets a filter and pushes
+/// content; every subsequent write re-emits per stream using that stream's *stored* filter; and
+/// a stale in-flight fetch is superseded per uuid. Providers are free to interleave interim
+/// `.loading` emissions before a settled state (`InMemoryTransactionsProvider` does, to simulate a
+/// slow refetch) — tests use `nextSettled()` wherever they want "the next real result" so they
+/// stay valid regardless of how many interim states precede it.
 struct TransactionsProviderStreamContractTests {
     enum ProviderKind: String, CaseIterable {
         case swiftData
@@ -32,79 +34,56 @@ struct TransactionsProviderStreamContractTests {
         "\(label)-\(UUID().uuidString)"
     }
 
-    // MARK: - initial emit
+    // MARK: - write-driven re-emit uses the stored filter
 
     @Test(arguments: ProviderKind.allCases)
-    func transactionsStream_emitsCurrentSetOnSubscribe(kind: ProviderKind) async throws {
+    func fetchTransactions_thenWrite_reEmitsStoredFilterScopeIncludingNewRow(kind: ProviderKind) async throws {
         let provider = try makeProvider(kind)
         let vendor = uniqueVendor("Vendor")
-        let transaction = Transaction(id: UUID().uuidString, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
-        try await provider.addTransactions([transaction])
+        // The category component proves scoping; the unique-vendor component isolates from the
+        // in-memory provider's seed data (which contains many groceries rows).
+        let filter = TransactionFilter(categoryIds: [Category.groceries.id], vendorSubstring: vendor)
 
-        let stream = await provider.transactionsStream(filter: TransactionFilter(vendorSubstring: vendor))
+        let grocery1 = Transaction(id: UUID().uuidString, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
+        let dining1 = Transaction(id: UUID().uuidString, amount: 20, vendor: vendor, categoryId: Category.dining.id, date: .now)
+        try await provider.addTransactions([grocery1, dining1])
+
+        let (stream, uuid) = await provider.transactionsStream()
         var iterator = stream.makeAsyncIterator()
-        let first = try #require(await iterator.next())
 
-        // The very first emission on subscribe is always settled directly, for both
-        // providers — only a write-triggered refresh may interleave a .loading pulse.
-        #expect(first.loadingState == .idle)
-        #expect(first.data == [transaction])
-    }
+        // fetch is the filter setter and the first content trigger.
+        _ = await provider.fetchTransactions(uuid: uuid, filter: filter)
+        let initial = try #require(await iterator.nextSettled())
+        #expect(initial.data == [grocery1]) // dining excluded by category, seed excluded by vendor
 
-    // MARK: - re-emit on insert
+        let grocery2 = Transaction(id: UUID().uuidString, amount: 30, vendor: vendor, categoryId: Category.groceries.id, date: .now)
+        let dining2 = Transaction(id: UUID().uuidString, amount: 40, vendor: vendor, categoryId: Category.dining.id, date: .now)
+        try await provider.addTransactions([grocery2, dining2])
 
-    @Test(arguments: ProviderKind.allCases)
-    func addTransactions_triggersReEmitReflectingInsert(kind: ProviderKind) async throws {
-        let provider = try makeProvider(kind)
-        let vendor = uniqueVendor("Vendor")
-        let filter = TransactionFilter(vendorSubstring: vendor)
-
-        let stream = await provider.transactionsStream(filter: filter)
-        var iterator = stream.makeAsyncIterator()
-        let initial = try #require(await iterator.next())
-        #expect(initial.data.isEmpty)
-
-        let transaction = Transaction(id: UUID().uuidString, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
-        try await provider.addTransactions([transaction])
-
-        let updated = try #require(await iterator.nextSettled())
-        #expect(updated.data == [transaction])
-    }
-
-    // MARK: - filtered re-emit
-
-    @Test(arguments: ProviderKind.allCases)
-    func addTransactions_filteredStream_onlyReflectsMatchingInsert(kind: ProviderKind) async throws {
-        let provider = try makeProvider(kind)
-        let vendor = uniqueVendor("Vendor")
-        let filter = TransactionFilter(vendorSubstring: vendor)
-
-        let stream = await provider.transactionsStream(filter: filter)
-        var iterator = stream.makeAsyncIterator()
-        _ = try #require(await iterator.next())
-
-        let matching = Transaction(id: UUID().uuidString, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
-        let nonMatching = Transaction(id: UUID().uuidString, amount: 20, vendor: uniqueVendor("Other"), categoryId: Category.dining.id, date: .now)
-        try await provider.addTransactions([matching, nonMatching])
-
-        let updated = try #require(await iterator.nextSettled())
-        #expect(updated.data == [matching])
+        // The write-driven re-emit re-runs uuid's STORED filter: groceries-scoped, including the
+        // newly written groceries row, and still excluding the newly written dining row.
+        let reEmit = try #require(await iterator.nextSettled())
+        #expect(Set(reEmit.data.map(\.id)) == Set([grocery1.id, grocery2.id]))
+        #expect(!reEmit.data.contains { $0.categoryId == Category.dining.id })
     }
 
     // MARK: - simultaneous streams
 
     @Test(arguments: ProviderKind.allCases)
-    func addTransactions_twoSimultaneousFilteredStreams_eachGetsOwnReemission(kind: ProviderKind) async throws {
+    func addTransactions_twoSimultaneousStreams_eachReEmitsOwnScope(kind: ProviderKind) async throws {
         let provider = try makeProvider(kind)
         let vendorA = uniqueVendor("VendorA")
         let vendorB = uniqueVendor("VendorB")
 
-        let streamA = await provider.transactionsStream(filter: TransactionFilter(vendorSubstring: vendorA))
-        let streamB = await provider.transactionsStream(filter: TransactionFilter(vendorSubstring: vendorB))
+        let (streamA, uuidA) = await provider.transactionsStream()
+        let (streamB, uuidB) = await provider.transactionsStream()
         var iteratorA = streamA.makeAsyncIterator()
         var iteratorB = streamB.makeAsyncIterator()
-        _ = try #require(await iteratorA.next())
-        _ = try #require(await iteratorB.next())
+
+        _ = await provider.fetchTransactions(uuid: uuidA, filter: TransactionFilter(vendorSubstring: vendorA))
+        _ = await provider.fetchTransactions(uuid: uuidB, filter: TransactionFilter(vendorSubstring: vendorB))
+        _ = try #require(await iteratorA.nextSettled())
+        _ = try #require(await iteratorB.nextSettled())
 
         let txA = Transaction(id: UUID().uuidString, amount: 10, vendor: vendorA, categoryId: Category.groceries.id, date: .now)
         let txB = Transaction(id: UUID().uuidString, amount: 20, vendor: vendorB, categoryId: Category.dining.id, date: .now)
@@ -117,63 +96,36 @@ struct TransactionsProviderStreamContractTests {
         #expect(updatedB.data == [txB])
     }
 
-    // MARK: - one settled update per write, not per row
-
-    @Test(arguments: ProviderKind.allCases)
-    func addTransactions_emitsExactlyOneSettledUpdateRegardlessOfRowCount(kind: ProviderKind) async throws {
-        let provider = try makeProvider(kind)
-        let vendor = uniqueVendor("Vendor")
-        let filter = TransactionFilter(vendorSubstring: vendor)
-
-        let stream = await provider.transactionsStream(filter: filter)
-        let box = StreamIteratorBox(stream)
-        _ = try #require(await box.next())
-
-        let transactions = (0 ..< 3).map { i in
-            Transaction(id: UUID().uuidString, amount: Decimal(i), vendor: vendor, categoryId: Category.groceries.id, date: .now)
-        }
-        try await provider.addTransactions(transactions)
-
-        let firstReemission = try #require(await box.nextSettled())
-        #expect(Set(firstReemission.data.map(\.id)) == Set(transactions.map(\.id)))
-
-        // Nothing else should follow — not another settled update, and (once past any
-        // interim .loading pulses already consumed by nextSettled) not another emission
-        // of any kind — until the next write.
-        let secondReemission = await box.nextOrTimeout()
-        #expect(secondReemission == nil)
-    }
-
-    // MARK: - InMemory: interim loading emission carries data forward
+    // MARK: - stale in-flight fetch superseded per uuid
 
     @Test
-    func inMemoryProvider_addTransactions_loadingEmissionCarriesPreviouslyKnownData() async throws {
+    func inMemory_fetchTransactions_staleInFlightFetchIsSupersededPerUuid() async throws {
         let provider = InMemoryTransactionsProvider()
-        let vendor = uniqueVendor("Vendor")
-        let filter = TransactionFilter(vendorSubstring: vendor)
+        let vendorA = uniqueVendor("VendorA")
+        let vendorB = uniqueVendor("VendorB")
+        let txA = Transaction(id: UUID().uuidString, amount: 10, vendor: vendorA, categoryId: Category.groceries.id, date: .now)
+        let txB = Transaction(id: UUID().uuidString, amount: 20, vendor: vendorB, categoryId: Category.dining.id, date: .now)
+        try await provider.addTransactions([txA, txB])
 
-        // Seed a prior snapshot before subscribing so the interim .loading pulse has
-        // something non-empty to carry forward.
-        let existing = Transaction(id: UUID().uuidString, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
-        try await provider.addTransactions([existing])
+        let (stream, uuid) = await provider.transactionsStream()
+        let box = StreamIteratorBox(stream)
 
-        let stream = await provider.transactionsStream(filter: filter)
-        var iterator = stream.makeAsyncIterator()
-        let initial = try #require(await iterator.next())
-        #expect(initial.loadingState == .idle)
-        #expect(initial.data == [existing])
+        // Start the vendorA fetch, let it enter the actor and park in its simulated-latency sleep,
+        // then start the vendorB fetch on the SAME uuid. vendorB claims the newer generation, so
+        // only vendorB may reach the stream — the now-stale vendorA fetch must not yield after it.
+        let staleFetch = Task {
+            await provider.fetchTransactions(uuid: uuid, filter: TransactionFilter(vendorSubstring: vendorA))
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        _ = await provider.fetchTransactions(uuid: uuid, filter: TransactionFilter(vendorSubstring: vendorB))
+        _ = await staleFetch.value
 
-        let added = Transaction(id: UUID().uuidString, amount: 20, vendor: vendor, categoryId: Category.groceries.id, date: .now)
-        try await provider.addTransactions([added])
+        let settled = try #require(await box.nextSettled())
+        #expect(settled.data == [txB])
 
-        // The interim .loading pulse re-attaches the last-known data instead of blanking it.
-        let loadingState = try #require(await iterator.next())
-        #expect(loadingState.loadingState == .loading)
-        #expect(loadingState.data == [existing])
-
-        let settledState = try #require(await iterator.next())
-        #expect(settledState.loadingState == .idle)
-        #expect(Set(settledState.data.map(\.id)) == Set([existing.id, added.id]))
+        // Nothing else arrives — the superseded vendorA fetch never yields.
+        let extra = await box.nextOrTimeout()
+        #expect(extra == nil)
     }
 }
 

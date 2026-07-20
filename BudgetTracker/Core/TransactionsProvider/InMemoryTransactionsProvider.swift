@@ -59,20 +59,16 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
     ]
 
     private struct Subscription {
-        let filter: TransactionFilter
+        var filter: TransactionFilter
         let continuation: AsyncStream<DataState<Transaction>>.Continuation
         var lastData: [Transaction]
+        var generation: Int
     }
 
     private var transactions: [Transaction] = InMemoryTransactionsProvider.seed
     private var streamRegistry: [UUID: Subscription] = [:]
 
-    func fetchTransactions(filter: TransactionFilter) async throws -> [Transaction] {
-        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
-        return transactions.filter { filter.matches($0) }
-    }
-
-    func transactionsStream(filter: TransactionFilter) async -> AsyncStream<DataState<Transaction>> {
+    func transactionsStream() async -> (AsyncStream<DataState<Transaction>>, UUID) {
         let (stream, continuation) = AsyncStream.makeStream(of: DataState<Transaction>.self)
         let id = UUID()
 
@@ -80,13 +76,41 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
             Task { await self.deregister(id) }
         }
 
-        // First emission is always settled directly — only a write-triggered refresh
-        // interleaves a .loading pulse.
-        let settled = await settledDataState(for: filter, lastData: [])
-        streamRegistry[id] = Subscription(filter: filter, continuation: continuation, lastData: settled.data)
-        continuation.yield(settled)
+        // Silent channel: registered with an all-nil filter and no emission. The first
+        // fetchTransactions(uuid:filter:) sets the filter and pushes the first content.
+        streamRegistry[id] = Subscription(filter: TransactionFilter(), continuation: continuation, lastData: [], generation: 0)
 
-        return stream
+        return (stream, id)
+    }
+
+    func fetchTransactions(uuid: UUID, filter: TransactionFilter) async -> Result<[Transaction], Error> {
+        // Retain the filter for this uuid so write-driven re-emits stay correctly scoped, and bump
+        // the per-uuid generation so a later fetch supersedes this one's yield. Both writes happen
+        // synchronously in this prologue — before the simulated-latency query below suspends — so a
+        // second fetch that starts mid-flight has already claimed a newer generation by the time
+        // this (now stale) fetch resumes, and its yield is skipped.
+        streamRegistry[uuid]?.filter = filter
+        streamRegistry[uuid]?.generation += 1
+        let generation = streamRegistry[uuid]?.generation
+        let lastData = streamRegistry[uuid]?.lastData ?? []
+
+        // The fetch below has a simulated network delay, so signal .loading immediately (carrying
+        // the last-known data so the consumer never blanks the list) before yielding the settled
+        // result once it lands. Emitted from the prologue, where this fetch is by definition the
+        // latest for uuid, so it needs no generation gate — the settled yield below does.
+        streamRegistry[uuid]?.continuation.yield(DataState(loadingState: .loading, data: lastData))
+
+        let settled = await settledDataState(for: filter, lastData: lastData)
+
+        // Only yield if this is still the latest fetch for uuid and the stream is live.
+        if let subscription = streamRegistry[uuid], subscription.generation == generation {
+            streamRegistry[uuid]?.lastData = settled.data
+            subscription.continuation.yield(settled)
+        }
+
+        return settled.loadingState == .error
+            ? .failure(settled.error ?? FetchError.unknown)
+            : .success(settled.data)
     }
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {
@@ -114,14 +138,26 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
         streamRegistry.removeValue(forKey: id)
     }
 
-    /// Routed through fetchTransactions so every read this provider reports carries the same
+    /// Routed through `fetchFiltered` so every read this provider reports carries the same
     /// simulated network delay a real REST provider's refetch would have. On failure, carries
     /// `lastData` forward so an `.error` emission never blanks a previously-loaded list.
     private func settledDataState(for filter: TransactionFilter, lastData: [Transaction]) async -> DataState<Transaction> {
         do {
-            return try DataState(loadingState: .idle, data: await fetchTransactions(filter: filter))
+            return try DataState(loadingState: .idle, data: await fetchFiltered(filter))
         } catch {
             return DataState(loadingState: .error, data: lastData, error: error)
         }
+    }
+
+    /// Simulates a slow network read: the `Task.sleep` is the suspension point that makes the
+    /// per-uuid generation supersede in `fetchTransactions` observable — a second fetch can start
+    /// (and bump the generation) while an earlier one is parked here.
+    private func fetchFiltered(_ filter: TransactionFilter) async throws -> [Transaction] {
+        try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
+        return transactions.filter { filter.matches($0) }
+    }
+
+    enum FetchError: Error {
+        case unknown
     }
 }

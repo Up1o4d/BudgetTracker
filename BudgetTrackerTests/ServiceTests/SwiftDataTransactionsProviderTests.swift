@@ -15,11 +15,21 @@ struct SwiftDataTransactionsProviderTests {
         sut = SwiftDataTransactionsProvider(modelContainer: modelContainer)
     }
 
+    /// The new contract exposes reads only through a stream: `fetchTransactions` is the filter
+    /// setter that requires a stream handle. This helper opens a throwaway stream and asserts on
+    /// the settled `Result` it returns, keeping the filter-logic tests below focused on query
+    /// behavior. `withExtendedLifetime` keeps the stream registered for the duration of the fetch.
+    private func fetch(filter: TransactionFilter = .init()) async throws -> [Transaction] {
+        let (stream, uuid) = await sut.transactionsStream()
+        defer { withExtendedLifetime(stream) {} }
+        return try await sut.fetchTransactions(uuid: uuid, filter: filter).get()
+    }
+
     // MARK: - fetchTransactions()
 
     @Test
     func fetchTransactions_returnsEmptyWhenStoreIsEmpty() async throws {
-        let result = try await sut.fetchTransactions()
+        let result = try await fetch()
         #expect(result.isEmpty)
     }
 
@@ -29,7 +39,7 @@ struct SwiftDataTransactionsProviderTests {
         let newer = Transaction(id: "new", amount: 20, vendor: "New Shop", categoryId: Category.other.id, date: .distantFuture)
 
         try await sut.addTransactions([older, newer])
-        let result = try await sut.fetchTransactions()
+        let result = try await fetch()
 
         #expect(result.count == 2)
         #expect(result[0] == newer)
@@ -44,7 +54,7 @@ struct SwiftDataTransactionsProviderTests {
         let dining = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
         try await sut.addTransactions([grocery, dining])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: [Category.groceries.id]))
+        let result = try await fetch(filter: TransactionFilter(categoryIds: [Category.groceries.id]))
 
         #expect(result == [grocery])
     }
@@ -56,7 +66,7 @@ struct SwiftDataTransactionsProviderTests {
         let rent = Transaction(id: "3", amount: 1200, vendor: "City Apt", categoryId: Category.rent.id, date: .distantFuture)
         try await sut.addTransactions([grocery, dining, rent])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: [Category.groceries.id, Category.dining.id]))
+        let result = try await fetch(filter: TransactionFilter(categoryIds: [Category.groceries.id, Category.dining.id]))
 
         #expect(result == [dining, grocery])
     }
@@ -66,7 +76,7 @@ struct SwiftDataTransactionsProviderTests {
         let grocery = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .now)
         try await sut.addTransactions([grocery])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: []))
+        let result = try await fetch(filter: TransactionFilter(categoryIds: []))
 
         #expect(result.isEmpty)
     }
@@ -77,7 +87,7 @@ struct SwiftDataTransactionsProviderTests {
         let dining = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
         try await sut.addTransactions([grocery, dining])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(categoryIds: nil))
+        let result = try await fetch(filter: TransactionFilter(categoryIds: nil))
 
         #expect(result == [dining, grocery])
     }
@@ -99,7 +109,7 @@ struct SwiftDataTransactionsProviderTests {
 
         let start = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
         let end = calendar.date(from: DateComponents(year: 2026, month: 2, day: 28))!
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(dateRange: start...end))
+        let result = try await fetch(filter: TransactionFilter(dateRange: start...end))
 
         #expect(result.map(\.id) == ["2", "1"])
     }
@@ -112,7 +122,7 @@ struct SwiftDataTransactionsProviderTests {
         let sushiBar = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
         try await sut.addTransactions([wholeFoods, sushiBar])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(vendorSubstring: "Whole"))
+        let result = try await fetch(filter: TransactionFilter(vendorSubstring: "Whole"))
 
         #expect(result == [wholeFoods])
     }
@@ -122,7 +132,7 @@ struct SwiftDataTransactionsProviderTests {
         let wholeFoods = Transaction(id: "1", amount: 10, vendor: "Whole Foods", categoryId: Category.groceries.id, date: .now)
         try await sut.addTransactions([wholeFoods])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(vendorSubstring: "whole"))
+        let result = try await fetch(filter: TransactionFilter(vendorSubstring: "whole"))
 
         #expect(result == [wholeFoods])
     }
@@ -133,7 +143,7 @@ struct SwiftDataTransactionsProviderTests {
         let sushiBar = Transaction(id: "2", amount: 20, vendor: "Sushi Bar", categoryId: Category.dining.id, date: .distantFuture)
         try await sut.addTransactions([wholeFoods, sushiBar])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(vendorSubstring: nil))
+        let result = try await fetch(filter: TransactionFilter(vendorSubstring: nil))
 
         #expect(result == [sushiBar, wholeFoods])
     }
@@ -154,7 +164,7 @@ struct SwiftDataTransactionsProviderTests {
 
         let start = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
         let end = calendar.date(from: DateComponents(year: 2026, month: 1, day: 31))!
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(
+        let result = try await fetch(filter: TransactionFilter(
             categoryIds: [Category.groceries.id],
             dateRange: start...end
         ))
@@ -169,7 +179,7 @@ struct SwiftDataTransactionsProviderTests {
         let traderJoes = Transaction(id: "3", amount: 30, vendor: "Trader Joe's", categoryId: Category.groceries.id, date: .now)
         try await sut.addTransactions([wholeFoodsGroceries, wholeFoodsDining, traderJoes])
 
-        let result = try await sut.fetchTransactions(filter: TransactionFilter(
+        let result = try await fetch(filter: TransactionFilter(
             categoryIds: [Category.groceries.id],
             vendorSubstring: "Whole"
         ))
@@ -190,7 +200,7 @@ struct SwiftDataTransactionsProviderTests {
         )
 
         try await sut.addTransactions([transaction])
-        let result = try await sut.fetchTransactions()
+        let result = try await fetch()
 
         #expect(result == [transaction])
     }
@@ -204,7 +214,7 @@ struct SwiftDataTransactionsProviderTests {
         ]
 
         try await sut.addTransactions(transactions)
-        let result = try await sut.fetchTransactions()
+        let result = try await fetch()
 
         #expect(result.count == 3)
     }
