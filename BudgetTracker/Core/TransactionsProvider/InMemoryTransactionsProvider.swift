@@ -83,6 +83,7 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
         return (stream, id)
     }
 
+    @discardableResult
     func fetchTransactions(uuid: UUID, filter: TransactionFilter) async -> Result<[Transaction], Error> {
         // Retain the filter for this uuid so write-driven re-emits stay correctly scoped, and bump
         // the per-uuid generation so a later fetch supersedes this one's yield. Both writes happen

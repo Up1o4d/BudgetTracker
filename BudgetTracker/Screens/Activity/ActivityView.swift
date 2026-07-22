@@ -18,9 +18,7 @@ struct ActivityView: View {
         }
         .defaultScreenStyle()
         .navigationTitle("screen.activity.title")
-        .task {
-            await viewModel.loadData()
-        }
+        .task { await viewModel.loadData() }
     }
 
     private var searchField: some View {

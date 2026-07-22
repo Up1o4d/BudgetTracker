@@ -8,11 +8,11 @@ final class ActivityViewModel {
     private let categoriesProvider: any CategoriesProviderProtocol
     private let appSettings: any AppSettingsProtocol
 
+    private var transactionsObserverTask: Task<Void, Never>?
     private var successfullyFinishedInitialLoad: Bool = false
     private var searchTask: Task<Void, Never>?
-    private var loadTransactionsTask: Task<Void, Never>?
-    private var observationTask: Task<Void, Never>?
 
+    private var transactionStreamUUID: UUID?
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
@@ -34,13 +34,6 @@ final class ActivityViewModel {
     var viewLoadingState: LoadingState {
         guard !successfullyFinishedInitialLoad else { return .idle }
         return LoadingState.merged(transactionsState.loadingState, categoriesState.loadingState)
-    }
-
-    private var transactionFilter: TransactionFilter {
-        TransactionFilter(
-            categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds,
-            vendorSubstring: searchString.isEmpty ? nil : searchString
-        )
     }
 
     private var categoriesById: [String: Category] {
@@ -75,42 +68,27 @@ final class ActivityViewModel {
     }
 
     private func loadTransactions() async {
-        // Switching between filters quickly can trigger multiple requests
-        // Cancel the previous subscription if it exists, so that new data doesn't arrive out of order
-        loadTransactionsTask?.cancel()
-        observationTask?.cancel()
-
-        loadTransactionsTask = Task {
-            // Mutate only the flag so the current data stays on screen while we resubscribe.
-            transactionsState.loadingState = .loading
-
-            let stream = await transactionsProvider.transactionsStream(filter: transactionFilter)
-            guard !Task.isCancelled else { return }
-
-            var iterator = stream.makeAsyncIterator()
-
-            // A provider may emit interim .loading states before settling (e.g. a REST
-            // provider mid-refetch) — keep applying those until we see a settled state,
-            // so `loadData()`'s initial-load check isn't left waiting on a `.loading`
-            // emission that already came and went. Every emission already carries the
-            // last-known data, so we can assign it verbatim.
-            while let state = await iterator.next() {
-                guard !Task.isCancelled else { return }
-                transactionsState = state
-                if state.loadingState != .loading { break }
-            }
-
-            // Subsequent emissions (inserts) are refreshes, not initial loads — they're
-            // consumed in the background so this task's `.value` only awaits the first
-            // settled one.
-            observationTask = Task {
-                while let state = await iterator.next() {
-                    guard !Task.isCancelled else { break }
-                    transactionsState = state
-                }
-            }
+        var streamUUID: UUID
+        if let transactionStreamUUID = transactionStreamUUID {
+            streamUUID = transactionStreamUUID
+        } else {
+            // transactionStreamUUID is nil, need to set up the observer first
+            let (task, uuid) = await setUpTransactionsStreamObserver()
+            transactionsObserverTask = task
+            streamUUID = uuid
         }
-        await loadTransactionsTask?.value
+
+        var transactionFilter: TransactionFilter {
+            TransactionFilter(
+                categoryIds: filterCategoryIds.isEmpty ? nil : filterCategoryIds,
+                vendorSubstring: searchString.isEmpty ? nil : searchString
+            )
+        }
+
+        await transactionsProvider.fetchTransactions(
+            uuid: streamUUID,
+            filter: transactionFilter
+        )
     }
 
     private func loadCategories() async {
@@ -155,5 +133,21 @@ final class ActivityViewModel {
     func resetFilterCategories() -> Task<Void, Never> {
         filterCategoryIds.removeAll()
         return Task { await self.loadTransactions() }
+    }
+}
+
+// MARK: - Observers
+
+extension ActivityViewModel {
+    func setUpTransactionsStreamObserver() async -> (Task<Void, Never>, UUID) {
+        transactionsObserverTask?.cancel()
+        let (transactionProviderStream, uuid) = await transactionsProvider.transactionsStream()
+        let observerTask = Task { [weak self] in
+            for await state in transactionProviderStream {
+                self?.transactionsState = state
+            }
+        }
+
+        return (observerTask, uuid)
     }
 }

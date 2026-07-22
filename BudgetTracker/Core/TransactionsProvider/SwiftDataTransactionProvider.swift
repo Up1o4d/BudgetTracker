@@ -33,6 +33,7 @@ actor SwiftDataTransactionsProvider: TransactionsProviderProtocol {
         return (stream, id)
     }
 
+    @discardableResult
     func fetchTransactions(uuid: UUID, filter: TransactionFilter) async -> Result<[Transaction], Error> {
         // Retain the filter for this uuid so write-driven re-emits stay correctly scoped, and bump
         // the per-uuid generation so a later fetch supersedes this one's yield. Both writes happen
@@ -84,12 +85,12 @@ actor SwiftDataTransactionsProvider: TransactionsProviderProtocol {
         streamRegistry.removeValue(forKey: id)
     }
 
-    // Fetches synchronously, so it always settles directly to .idle/.error — never
-    // yields an interim .loading state (see the doc comment on the protocol method). On
-    // failure, carries `lastData` forward so an `.error` emission never blanks the list.
+    /// Fetches synchronously, so it always settles directly to .idle/.error — never
+    /// yields an interim .loading state (see the doc comment on the protocol method). On
+    /// failure, carries `lastData` forward so an `.error` emission never blanks the list.
     private func settledDataState(for filter: TransactionFilter, lastData: [Transaction]) -> DataState<Transaction> {
         do {
-            return DataState(loadingState: .idle, data: try fetchFiltered(filter))
+            return try DataState(loadingState: .idle, data: fetchFiltered(filter))
         } catch {
             return DataState(loadingState: .error, data: lastData, error: error)
         }
@@ -106,8 +107,8 @@ actor SwiftDataTransactionsProvider: TransactionsProviderProtocol {
 
         let predicate = #Predicate<StoredTransaction> { tx in
             (!filterByCategory || categoryIds.contains(tx.categoryId)) &&
-            (!filterByDate || (tx.date >= startDate && tx.date <= endDate)) &&
-            (!filterByVendor || tx.vendor.localizedStandardContains(vendorSubstring))
+                (!filterByDate || (tx.date >= startDate && tx.date <= endDate)) &&
+                (!filterByVendor || tx.vendor.localizedStandardContains(vendorSubstring))
         }
 
         let descriptor = FetchDescriptor<StoredTransaction>(

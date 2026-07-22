@@ -19,6 +19,7 @@ protocol TransactionsProviderProtocol: Sendable {
     /// subsequent write-driven re-emits stay correctly scoped), runs the query, and yields the
     /// settled `DataState` down `uuid`'s stream. The return is IGNORABLE for content — content
     /// always arrives via the stream; the return exists only to give pull-to-refresh an awaitable.
+    @discardableResult
     func fetchTransactions(uuid: UUID, filter: TransactionFilter) async -> Result<[Transaction], Error>
 
     func addTransactions(_ newTransactions: [Transaction]) async throws
