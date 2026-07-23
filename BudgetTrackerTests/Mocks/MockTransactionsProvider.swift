@@ -7,26 +7,17 @@ final class MockTransactionsProvider: TransactionsProviderProtocol, @unchecked S
     private(set) var fetchTransactionsCallCount = 0
     private(set) var lastFilter: TransactionFilter?
     private(set) var transactionsStreamCallCount = 0
-    private(set) var lastStreamFilter: TransactionFilter?
 
     private struct Subscription {
-        let filter: TransactionFilter
         let continuation: AsyncStream<DataState<Transaction>>.Continuation
+        var filter: TransactionFilter?   // nil until the first fetch binds this stream's filter
         var lastData: [Transaction]
     }
 
     private var streamRegistry: [UUID: Subscription] = [:]
 
-    func fetchTransactions(filter: TransactionFilter) async throws -> [Transaction] {
-        fetchTransactionsCallCount += 1
-        lastFilter = filter
-        if let error = stubbedError { throw error }
-        return stubbedTransactions.filter { filter.matches($0) }
-    }
-
-    func transactionsStream(filter: TransactionFilter) async -> AsyncStream<DataState<Transaction>> {
+    func transactionsStream() async -> (AsyncStream<DataState<Transaction>>, UUID) {
         transactionsStreamCallCount += 1
-        lastStreamFilter = filter
 
         let (stream, continuation) = AsyncStream.makeStream(of: DataState<Transaction>.self)
         let id = UUID()
@@ -35,19 +26,40 @@ final class MockTransactionsProvider: TransactionsProviderProtocol, @unchecked S
             self?.streamRegistry.removeValue(forKey: id)
         }
 
-        let settled = settledDataState(for: filter, lastData: [])
-        streamRegistry[id] = Subscription(filter: filter, continuation: continuation, lastData: settled.data)
-        continuation.yield(settled)
+        // Silent channel: nothing is emitted until the first `fetchTransactions(uuid:filter:)`
+        // binds a filter and pushes content, matching the real providers' contract.
+        streamRegistry[id] = Subscription(continuation: continuation, filter: nil, lastData: [])
 
-        return stream
+        return (stream, id)
+    }
+
+    @discardableResult
+    func fetchTransactions(uuid: UUID, filter: TransactionFilter) async -> Result<[Transaction], Error> {
+        fetchTransactionsCallCount += 1
+        lastFilter = filter
+
+        guard streamRegistry[uuid] != nil else { return .success([]) }
+
+        // Bind the filter to this stream so later write-driven re-emits stay correctly scoped.
+        streamRegistry[uuid]?.filter = filter
+
+        let settled = settledDataState(for: filter, lastData: streamRegistry[uuid]?.lastData ?? [])
+        streamRegistry[uuid]?.lastData = settled.data
+        streamRegistry[uuid]?.continuation.yield(settled)
+
+        return settled.loadingState == .error
+            ? .failure(settled.error ?? stubbedError ?? NSError(domain: "MockTransactionsProvider", code: 0))
+            : .success(settled.data)
     }
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {
         stubbedTransactions.append(contentsOf: newTransactions)
 
+        // Re-emit only for streams that have been fetched (filter bound); never-fetched streams
+        // stay silent, matching the real registry's write-driven re-emit.
         for id in streamRegistry.keys {
-            guard let subscription = streamRegistry[id] else { continue }
-            let settled = settledDataState(for: subscription.filter, lastData: subscription.lastData)
+            guard let subscription = streamRegistry[id], let filter = subscription.filter else { continue }
+            let settled = settledDataState(for: filter, lastData: subscription.lastData)
             streamRegistry[id]?.lastData = settled.data
             subscription.continuation.yield(settled)
         }

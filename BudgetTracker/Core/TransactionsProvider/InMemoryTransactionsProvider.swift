@@ -78,7 +78,7 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
     }
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {
-        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000))
+        try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
         transactions.append(contentsOf: newTransactions)
 
         // The provider is the sole writer, so re-emitting every registered stream here after

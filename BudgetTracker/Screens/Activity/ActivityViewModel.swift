@@ -67,7 +67,11 @@ final class ActivityViewModel {
         self.appSettings = appSettings
     }
 
-    private func loadTransactions() async {
+    /// Returns the fetch's settled result so `loadData` can decide whether the initial load
+    /// succeeded from the value it awaits directly, rather than from `transactionsState`, which
+    /// the stream observer updates asynchronously and may not have drained yet.
+    @discardableResult
+    private func loadTransactions() async -> Result<[Transaction], Error> {
         var streamUUID: UUID
         if let transactionStreamUUID = transactionStreamUUID {
             streamUUID = transactionStreamUUID
@@ -85,7 +89,7 @@ final class ActivityViewModel {
             )
         }
 
-        await transactionsProvider.fetchTransactions(
+        return await transactionsProvider.fetchTransactions(
             uuid: streamUUID,
             filter: transactionFilter
         )
@@ -102,11 +106,14 @@ final class ActivityViewModel {
     }
 
     func loadData() async {
-        async let transactionsCall: Void = loadTransactions()
+        async let transactionsResult = loadTransactions()
         async let categoriesCall: Void = loadCategories()
-        _ = await (transactionsCall, categoriesCall)
+        let (result, _) = await (transactionsResult, categoriesCall)
 
-        if viewLoadingState == .idle {
+        // Decide "initial load finished" from the awaited fetch result and the synchronously-set
+        // categories state — not from `viewLoadingState`, whose transactions component is updated
+        // asynchronously by the stream observer and may still read `.loading` at this point.
+        if case .success = result, categoriesState.loadingState == .idle {
             successfullyFinishedInitialLoad = true
         }
     }

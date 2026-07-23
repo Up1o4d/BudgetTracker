@@ -13,6 +13,18 @@ struct ActivityViewModelTests {
         sut = ActivityViewModel(transactionsProvider: transactionsProvider, categoriesProvider: categoriesProvider, appSettings: InMemoryAppSettings())
     }
 
+    /// The ViewModel applies transaction stream emissions on a detached observer `Task`, so a
+    /// settled state pushed by `fetchTransactions`/`addTransactions` lands on `transactionsState`
+    /// one hop after the awaited call returns. Polls until `condition` holds rather than sleeping a
+    /// fixed interval — the latter flakes under Swift Testing's parallel execution, where the
+    /// observer Task can be scheduled well after any fixed delay.
+    private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(2)) async {
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        while !condition(), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+    }
+
     // MARK: - Initial state
 
     @Test
@@ -30,12 +42,14 @@ struct ActivityViewModelTests {
             Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
         ]
         await sut.loadData()
+        await waitUntil { sut.viewLoadingState == .idle }
         #expect(sut.viewLoadingState == .idle)
     }
 
     @Test
     func loadData_setsIdleStateWhenNoTransactions() async {
         await sut.loadData()
+        await waitUntil { sut.viewLoadingState == .idle }
         #expect(sut.viewLoadingState == .idle)
     }
 
@@ -47,6 +61,7 @@ struct ActivityViewModelTests {
         ]
         transactionsProvider.stubbedTransactions = transactions
         await sut.loadData()
+        await waitUntil { sut.transactionsState.data == transactions }
         #expect(sut.transactionsState.data == transactions)
     }
 
@@ -71,6 +86,7 @@ struct ActivityViewModelTests {
     func loadData_setsErrorStateOnTransactionsFailure() async {
         transactionsProvider.stubbedError = NSError(domain: "test", code: 0)
         await sut.loadData()
+        await waitUntil { sut.viewLoadingState == .error }
         #expect(sut.viewLoadingState == .error)
     }
 
@@ -78,6 +94,7 @@ struct ActivityViewModelTests {
     func loadData_setsErrorStateOnCategoriesFailure() async {
         categoriesProvider.stubbedError = NSError(domain: "test", code: 0)
         await sut.loadData()
+        await waitUntil { sut.viewLoadingState == .error }
         #expect(sut.viewLoadingState == .error)
     }
 
@@ -112,6 +129,7 @@ struct ActivityViewModelTests {
         ]
         await sut.loadData()
         await sut.toggleFilterCategory(.groceries).value
+        await waitUntil { sut.transactionsState.data.count == 1 }
         #expect(sut.transactionsState.data.count == 1)
         #expect(sut.transactionsState.data.first?.categoryId == "groceries")
     }
@@ -135,6 +153,7 @@ struct ActivityViewModelTests {
         await sut.loadData()
         await sut.toggleFilterCategory(.groceries).value
         await sut.resetFilterCategories().value
+        await waitUntil { sut.transactionsState.data.count == 2 }
         #expect(sut.transactionsState.data.count == 2)
     }
 
@@ -146,12 +165,13 @@ struct ActivityViewModelTests {
             Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now),
         ]
         await sut.loadData()
+        await waitUntil { sut.transactionsState.data.count == 1 }
         #expect(sut.transactionsState.data.count == 1)
 
         try await transactionsProvider.addTransactions([
             Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
         ])
-        try await Task.sleep(for: .milliseconds(50))
+        await waitUntil { sut.transactionsState.data.count == 2 }
 
         #expect(sut.transactionsState.data.count == 2)
     }
@@ -166,7 +186,7 @@ struct ActivityViewModelTests {
         try await transactionsProvider.addTransactions([
             Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
         ])
-        try await Task.sleep(for: .milliseconds(50))
+        await waitUntil { sut.transactionsState.data.count == 2 }
 
         #expect(sut.viewLoadingState == .idle)
         #expect(sut.transactionsState.loadingState == .idle)
@@ -183,7 +203,9 @@ struct ActivityViewModelTests {
         try await transactionsProvider.addTransactions([
             Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now),
         ])
-        try await Task.sleep(for: .milliseconds(50))
+        // The dining row must never reach a groceries-scoped stream, so poll on the stable
+        // steady state (loaded + idle) rather than a count that would also hold before the write.
+        await waitUntil { sut.transactionsState.loadingState == .idle && sut.transactionsState.data.count == 1 }
 
         #expect(sut.transactionsState.data.count == 1)
         #expect(sut.transactionsState.data.first?.categoryId == "groceries")
@@ -196,12 +218,13 @@ struct ActivityViewModelTests {
         let existing = Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now)
         transactionsProvider.stubbedTransactions = [existing]
         await sut.loadData()
+        await waitUntil { sut.transactionsState.data == [existing] }
         #expect(sut.transactionsState.data == [existing])
 
         // The provider signals a refetch is in flight, carrying its last-known data forward
         // as the stream contract requires, before a new settled result is available.
         transactionsProvider.emitLoading()
-        try await Task.sleep(for: .milliseconds(50))
+        await waitUntil { sut.transactionsState.loadingState == .loading }
 
         #expect(sut.transactionsState.loadingState == .loading)
         #expect(sut.transactionsState.data == [existing])
@@ -210,7 +233,7 @@ struct ActivityViewModelTests {
 
         let added = Transaction(id: "2", amount: 20, vendor: "B", categoryId: "dining", date: .now)
         try await transactionsProvider.addTransactions([added])
-        try await Task.sleep(for: .milliseconds(50))
+        await waitUntil { sut.transactionsState.loadingState == .idle && sut.transactionsState.data.count == 2 }
 
         #expect(sut.transactionsState.loadingState == .idle)
         #expect(Set(sut.transactionsState.data.map(\.id)) == Set([existing.id, added.id]))
@@ -221,10 +244,11 @@ struct ActivityViewModelTests {
         let existing = Transaction(id: "1", amount: 10, vendor: "A", categoryId: "groceries", date: .now)
         transactionsProvider.stubbedTransactions = [existing]
         await sut.loadData()
+        await waitUntil { sut.transactionsState.data == [existing] }
         #expect(sut.transactionsState.data == [existing])
 
         transactionsProvider.emitError(NSError(domain: "test", code: 0))
-        try await Task.sleep(for: .milliseconds(50))
+        await waitUntil { sut.transactionsState.loadingState == .error }
 
         #expect(sut.transactionsState.loadingState == .error)
         #expect(sut.transactionsState.data == [existing])
@@ -243,7 +267,9 @@ struct ActivityViewModelTests {
         await sut.loadData()
 
         sut.searchString = "Whole"
-        try await Task.sleep(for: .milliseconds(400))
+        // Wait past the 300 ms search debounce for the reload to fire, then poll for propagation.
+        try await Task.sleep(for: .milliseconds(350))
+        await waitUntil { sut.transactionsState.data.count == 1 }
 
         #expect(sut.transactionsState.data.count == 1)
         #expect(sut.transactionsState.data.first?.vendor == "Whole Foods")
@@ -258,9 +284,11 @@ struct ActivityViewModelTests {
         await sut.loadData()
 
         sut.searchString = "Whole"
-        try await Task.sleep(for: .milliseconds(400))
+        try await Task.sleep(for: .milliseconds(350))
+        await waitUntil { sut.transactionsState.data.count == 1 }
         sut.searchString = ""
-        try await Task.sleep(for: .milliseconds(400))
+        try await Task.sleep(for: .milliseconds(350))
+        await waitUntil { sut.transactionsState.data.count == 2 }
 
         #expect(sut.transactionsState.data.count == 2)
     }
@@ -279,6 +307,7 @@ struct ActivityViewModelTests {
             Transaction(id: "3", amount: 30, vendor: "C", categoryId: "rent", date: yesterday),
         ]
         await sut.loadData()
+        await waitUntil { sut.transactionsState.data.count == 3 }
 
         #expect(sut.transactionCategoriesByDate[today]?.count == 2)
         #expect(sut.transactionCategoriesByDate[yesterday]?.count == 1)
