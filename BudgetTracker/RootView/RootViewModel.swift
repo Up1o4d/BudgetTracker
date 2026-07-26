@@ -2,7 +2,6 @@ import Foundation
 
 @Observable
 final class RootViewModel {
-    // TODO: Replace with a real state enum val
     private(set) var state: LoadingState = .loading
     let appDependencies: AppDependencies
     private var appSettings: any AppSettingsProtocol

@@ -3,6 +3,7 @@ import SwiftData
 
 @Model
 class StoredTransaction {
+    @Attribute(.unique)
     var id: String
     var amount: Decimal
     var vendor: String

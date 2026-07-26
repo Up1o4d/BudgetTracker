@@ -15,11 +15,13 @@ struct SwiftDataCategoriesProviderTests {
         sut = SwiftDataCategoriesProvider(modelContainer: modelContainer)
     }
 
-    // MARK: - fetchCategories()
+    // MARK: - fetchCategories(uuid:)
 
     @Test
     func fetchCategories_returnsEmpty_whenNoCategoriesAdded() async throws {
-        let result = try await sut.fetchCategories()
+        let (_, uuid) = await sut.categoriesStream()
+
+        let result = try await sut.fetchCategories(uuid: uuid).get()
 
         #expect(result.isEmpty)
     }
@@ -28,7 +30,8 @@ struct SwiftDataCategoriesProviderTests {
     func fetchCategories_returnsAddedCategories() async throws {
         try await sut.addCategories(Category.all)
 
-        let result = try await sut.fetchCategories()
+        let (_, uuid) = await sut.categoriesStream()
+        let result = try await sut.fetchCategories(uuid: uuid).get()
 
         #expect(result.count == Category.all.count)
         #expect(Set(result.map(\.id)) == Set(Category.all.map(\.id)))
@@ -40,18 +43,9 @@ struct SwiftDataCategoriesProviderTests {
     func addCategories_persistsCategories() async throws {
         try await sut.addCategories(Category.all)
 
-        let result = try await sut.fetchCategories()
+        let (_, uuid) = await sut.categoriesStream()
+        let result = try await sut.fetchCategories(uuid: uuid).get()
 
         #expect(result.count == Category.all.count)
-    }
-
-    @Test
-    func addCategories_appendsOnSubsequentCalls() async throws {
-        try await sut.addCategories(Category.all)
-        try await sut.addCategories(Category.all)
-
-        let result = try await sut.fetchCategories()
-
-        #expect(result.count == Category.all.count * 2)
     }
 }

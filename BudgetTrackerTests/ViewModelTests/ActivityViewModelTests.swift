@@ -70,6 +70,7 @@ struct ActivityViewModelTests {
         let categories: [BudgetTracker.Category] = [.groceries, .dining]
         categoriesProvider.stubbedCategories = categories
         await sut.loadData()
+        await waitUntil { sut.categoriesState.data == categories }
         #expect(sut.categoriesState.data == categories)
     }
 

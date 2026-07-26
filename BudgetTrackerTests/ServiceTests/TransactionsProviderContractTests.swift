@@ -3,15 +3,18 @@ import Foundation
 import SwiftData
 import Testing
 
-/// Contract tests for the `transactionsStream()` / `fetchTransactions(uuid:filter:)` pair, run
-/// against every production provider so the observable behavior stays identical between them:
-/// the stream is a silent channel until the first `fetchTransactions` sets a filter and pushes
-/// content; every subsequent write re-emits per stream using that stream's *stored* filter; and
-/// a stale in-flight fetch is superseded per uuid. Providers are free to interleave interim
-/// `.loading` emissions before a settled state (`InMemoryTransactionsProvider` does, to simulate a
-/// slow refetch) — tests use `nextSettled()` wherever they want "the next real result" so they
-/// stay valid regardless of how many interim states precede it.
-struct TransactionsProviderStreamContractTests {
+/// Contract tests for `TransactionsProviderProtocol`, run against every production provider so
+/// the observable behavior stays identical between them. Two halves:
+/// - Stream contract (`transactionsStream()` / `fetchTransactions(uuid:filter:)`): the stream is
+///   a silent channel until the first `fetchTransactions` sets a filter and pushes content; every
+///   subsequent write re-emits per stream using that stream's *stored* filter; and a stale
+///   in-flight fetch is superseded per uuid. Providers are free to interleave interim `.loading`
+///   emissions before a settled state (`InMemoryTransactionsProvider` does, to simulate a slow
+///   refetch) — tests use `nextSettled()` wherever they want "the next real result" so they stay
+///   valid regardless of how many interim states precede it.
+/// - Upsert contract (`addTransactions(_:)`): a transaction whose id is new appends, while one
+///   whose id already exists updates that entry in place rather than duplicating it.
+struct TransactionsProviderContractTests {
     enum ProviderKind: String, CaseIterable {
         case swiftData
         case inMemory
@@ -32,6 +35,12 @@ struct TransactionsProviderStreamContractTests {
 
     private func uniqueVendor(_ label: String) -> String {
         "\(label)-\(UUID().uuidString)"
+    }
+
+    private func fetch(_ provider: any TransactionsProviderProtocol, filter: TransactionFilter) async throws -> [Transaction] {
+        let (stream, uuid) = await provider.transactionsStream()
+        defer { withExtendedLifetime(stream) {} }
+        return try await provider.fetchTransactions(uuid: uuid, filter: filter).get()
     }
 
     // MARK: - write-driven re-emit uses the stored filter
@@ -126,6 +135,41 @@ struct TransactionsProviderStreamContractTests {
         // Nothing else arrives — the superseded vendorA fetch never yields.
         let extra = await box.nextOrTimeout()
         #expect(extra == nil)
+    }
+
+    // MARK: - addTransactions(_:) — fresh id
+
+    @Test(arguments: ProviderKind.allCases)
+    func addTransactions_withFreshId_appendsRatherThanReplacing(kind: ProviderKind) async throws {
+        let provider = try makeProvider(kind)
+        let vendor = uniqueVendor("Vendor")
+
+        let first = Transaction(id: UUID().uuidString, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
+        try await provider.addTransactions([first])
+
+        let second = Transaction(id: UUID().uuidString, amount: 20, vendor: vendor, categoryId: Category.dining.id, date: .now)
+        try await provider.addTransactions([second])
+
+        let result = try await fetch(provider, filter: TransactionFilter(vendorSubstring: vendor))
+        #expect(Set(result.map(\.id)) == Set([first.id, second.id]))
+    }
+
+    // MARK: - addTransactions(_:) — existing id
+
+    @Test(arguments: ProviderKind.allCases)
+    func addTransactions_withExistingId_updatesInPlaceRatherThanAppending(kind: ProviderKind) async throws {
+        let provider = try makeProvider(kind)
+        let vendor = uniqueVendor("Vendor")
+        let id = UUID().uuidString
+
+        let original = Transaction(id: id, amount: 10, vendor: vendor, categoryId: Category.groceries.id, date: .now)
+        try await provider.addTransactions([original])
+
+        let renamed = Transaction(id: id, amount: 999, vendor: vendor, categoryId: Category.dining.id, date: .now)
+        try await provider.addTransactions([renamed])
+
+        let result = try await fetch(provider, filter: TransactionFilter(vendorSubstring: vendor))
+        #expect(result == [renamed])
     }
 }
 

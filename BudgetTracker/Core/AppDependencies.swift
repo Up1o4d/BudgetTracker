@@ -1,8 +1,8 @@
 import SwiftData
 
 struct AppDependencies {
-    let transactionsProvider: TransactionsProviderProtocol
-    let categoriesProvider: CategoriesProviderProtocol
+    let transactionsProvider: any TransactionsProviderProtocol
+    let categoriesProvider: any CategoriesProviderProtocol
     let appSettings: any AppSettingsProtocol
 
     static func inMemory() -> AppDependencies {

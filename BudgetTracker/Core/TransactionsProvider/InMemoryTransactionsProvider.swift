@@ -58,8 +58,12 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
         Transaction(id: "50", amount: 49.99, vendor: "Internet Provider", categoryId: Category.utilities.id, date: date(2026, 5, 3)),
     ]
 
-    private var transactions: [Transaction] = InMemoryTransactionsProvider.seed
+    private var transactionsDict: [String: Transaction]
     private let registry = DataStreamRegistry<Transaction>()
+
+    init(transactions: [Transaction] = InMemoryTransactionsProvider.seed) {
+        transactionsDict = Dictionary(uniqueKeysWithValues: transactions.map { ($0.id, $0) })
+    }
 
     func transactionsStream() async -> (AsyncStream<DataState<Transaction>>, UUID) {
         await registry.makeStream()
@@ -79,7 +83,9 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {
         try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
-        transactions.append(contentsOf: newTransactions)
+        for transaction in newTransactions {
+            transactionsDict[transaction.id] = transaction
+        }
 
         // The provider is the sole writer, so re-emitting every registered stream here after
         // appending is what keeps ActivityView's observation live. Future delete/edit paths
@@ -92,6 +98,6 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
     /// start (and bump the generation) while an earlier one is parked here.
     private func fetchFiltered(_ filter: TransactionFilter) async throws -> [Transaction] {
         try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
-        return transactions.filter { filter.matches($0) }
+        return Array(transactionsDict.values).filter { filter.matches($0) }
     }
 }

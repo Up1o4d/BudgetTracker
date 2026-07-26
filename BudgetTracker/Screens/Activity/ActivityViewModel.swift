@@ -9,10 +9,12 @@ final class ActivityViewModel {
     private let appSettings: any AppSettingsProtocol
 
     private var transactionsObserverTask: Task<Void, Never>?
+    private var categoriesObserverTask: Task<Void, Never>?
     private var successfullyFinishedInitialLoad: Bool = false
     private var searchTask: Task<Void, Never>?
 
     private var transactionStreamUUID: UUID?
+    private var categoryStreamUUID: UUID?
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
@@ -79,6 +81,7 @@ final class ActivityViewModel {
             // transactionStreamUUID is nil, need to set up the observer first
             let (task, uuid) = await setUpTransactionsStreamObserver()
             transactionsObserverTask = task
+            transactionStreamUUID = uuid
             streamUUID = uuid
         }
 
@@ -95,25 +98,31 @@ final class ActivityViewModel {
         )
     }
 
-    private func loadCategories() async {
-        categoriesState = DataState(loadingState: .loading, data: categoriesState.data)
-        do {
-            let data = try await categoriesProvider.fetchCategories()
-            categoriesState = DataState(loadingState: .idle, data: data)
-        } catch {
-            categoriesState = DataState(loadingState: .error, data: categoriesState.data, error: error)
+    @discardableResult
+    private func loadCategories() async -> Result<[Category], Error> {
+        var streamUUID: UUID
+        if let categoryStreamUUID = categoryStreamUUID {
+            streamUUID = categoryStreamUUID
+        } else {
+            // categoryStreamUUID is nil, need to set up the observer first
+            let (task, uuid) = await setUpCategoriesStreamObserver()
+            categoriesObserverTask = task
+            categoryStreamUUID = uuid
+            streamUUID = uuid
         }
+
+        return await categoriesProvider.fetchCategories(uuid: streamUUID)
     }
 
     func loadData() async {
         async let transactionsResult = loadTransactions()
-        async let categoriesCall: Void = loadCategories()
-        let (result, _) = await (transactionsResult, categoriesCall)
+        async let categoriesResult = loadCategories()
+        let (transactions, categories) = await (transactionsResult, categoriesResult)
 
-        // Decide "initial load finished" from the awaited fetch result and the synchronously-set
-        // categories state — not from `viewLoadingState`, whose transactions component is updated
-        // asynchronously by the stream observer and may still read `.loading` at this point.
-        if case .success = result, categoriesState.loadingState == .idle {
+        // Decide "initial load finished" from the awaited fetch results — not from
+        // `viewLoadingState` or the state properties, which the stream observers update
+        // asynchronously and may not have drained yet.
+        if case .success = transactions, case .success = categories {
             successfullyFinishedInitialLoad = true
         }
     }
@@ -152,6 +161,18 @@ extension ActivityViewModel {
         let observerTask = Task { [weak self] in
             for await state in transactionProviderStream {
                 self?.transactionsState = state
+            }
+        }
+
+        return (observerTask, uuid)
+    }
+
+    func setUpCategoriesStreamObserver() async -> (Task<Void, Never>, UUID) {
+        categoriesObserverTask?.cancel()
+        let (categoryProviderStream, uuid) = await categoriesProvider.categoriesStream()
+        let observerTask = Task { [weak self] in
+            for await state in categoryProviderStream {
+                self?.categoriesState = state
             }
         }
 

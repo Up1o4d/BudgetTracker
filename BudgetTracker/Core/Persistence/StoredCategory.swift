@@ -3,6 +3,7 @@ import SwiftData
 
 @Model
 class StoredCategory {
+    @Attribute(.unique)
     var id: String
     var name: String
     var symbolName: String
