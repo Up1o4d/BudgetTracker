@@ -37,12 +37,11 @@ struct RootView: View {
                 .sheet(item: router.presentedSheetBinding) { sheet in
                     switch sheet {
                     case .addTransaction:
-                        NavigationStack {
-                            AddView(viewModel: .init(
-                                transactionsProvider: viewModel.appDependencies.transactionsProvider,
-                                onSaved: { router.presentedSheet = nil }
-                            ))
-                        }
+                        AddView(viewModel: .init(
+                            transactionsProvider: viewModel.appDependencies.transactionsProvider,
+                            appSettings: viewModel.appDependencies.appSettings,
+                            onSaved: { router.presentedSheet = nil }
+                        ))
                     }
                 }
             case .error:

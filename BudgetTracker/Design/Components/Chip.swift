@@ -20,8 +20,11 @@ struct Chip: View {
         .frame(height: 30)
         .padding(.horizontal, 12)
         .foregroundStyle(Color.textSecondary)
-        .background(Capsule().foregroundStyle(Color.bgSurface))
-        .overlay(Capsule().stroke(Color.borderSubtle, lineWidth: 1))
+        .background(
+            Capsule()
+                .fill(Color.bgSurface)
+                .stroke(Color.borderSubtle, lineWidth: 1)
+        )
         .colorScheme(isSelected ? (colorScheme == .dark ? .light : .dark) : colorScheme)
     }
 }

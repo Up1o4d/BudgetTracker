@@ -4,46 +4,18 @@ struct AddView: View {
     @State var viewModel: AddViewModel
 
     var body: some View {
-        Form {
-            Section {
-                HStack(alignment: .center) {
-                    Text(Locale.current.currencySymbol ?? "$")
-                        .textStyle(.titleMD)
-                        .foregroundStyle(Color.textSecondary)
-                    TextField("0.00", text: $viewModel.amountText)
-                        .textStyle(.titleMD)
-                        .keyboardType(.decimalPad)
-                }
-                TextField("Vendor", text: $viewModel.vendor)
-                DatePicker("Date", selection: $viewModel.date, displayedComponents: .date)
-            }
+        ScrollView {
+            VStack(alignment: .leading) {
+                Text("screen.add.title")
 
-            Section("Category") {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(Category.all) { category in
-                            Button {
-                                viewModel.selectedCategory = category
-                            } label: {
-                                Chip(
-                                    text: category.name,
-                                    systemImage: category.symbolName,
-                                    iconColor: Color(hex: category.colorHex),
-                                    isSelected: viewModel.selectedCategory.id == category.id
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            }
+                amountSection
 
-            Button("Save") {
-                viewModel.save()
+                Button("Save") {
+                    viewModel.save()
+                }
+                .disabled(!viewModel.isFormValid || viewModel.loadingState == .loading)
             }
-            .disabled(!viewModel.isFormValid || viewModel.loadingState == .loading)
+            .padding(.horizontal, 16)
         }
         .overlay {
             if viewModel.loadingState == .loading {
@@ -52,10 +24,35 @@ struct AddView: View {
         }
         .defaultScreenStyle()
         .scrollContentBackground(.hidden)
-        .navigationTitle("screen.add.title")
+    }
+
+    private var amountSection: some View {
+        VStack {
+            Text("AMOUNT") // TODO: Localize
+                .textStyle(.eyebrow)
+                .foregroundStyle(Color.textSecondary)
+            TextField(
+                "",
+                text: $viewModel.amountText
+            )
+            .textStyle(.displayXL)
+            .textFieldStyle(.plain)
+            .keyboardType(.numberPad)
+        }
+        .padding(16)
+        .background(backgroundCard)
+    }
+
+    private var backgroundCard: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(Color.bgSurface)
+            .stroke(Color.borderSubtle, lineWidth: 1)
     }
 }
 
 #Preview {
-    AddView(viewModel: .init(transactionsProvider: InMemoryTransactionsProvider()))
+    AddView(viewModel: .init(
+        transactionsProvider: InMemoryTransactionsProvider(),
+        appSettings: InMemoryAppSettings()
+    ))
 }
