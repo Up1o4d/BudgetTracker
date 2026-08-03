@@ -31,13 +31,11 @@ struct AddView: View {
             Text("AMOUNT") // TODO: Localize
                 .textStyle(.eyebrow)
                 .foregroundStyle(Color.textSecondary)
-            TextField(
-                "",
-                text: $viewModel.amountText
+            CurrencyTextField(
+                amount: $viewModel.amount,
+                currencyCode: viewModel.currencyCode
             )
             .textStyle(.displayXL)
-            .textFieldStyle(.plain)
-            .keyboardType(.numberPad)
         }
         .padding(16)
         .background(backgroundCard)
