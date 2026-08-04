@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Bank-style amount entry: each digit typed becomes the new least-significant digit
+/// (the currency's smallest unit), shifting everything already entered one place to the
+/// left. `digits` is the raw buffer driving that; `canonicalText` is what's actually
+/// shown, derived fresh from it on every render.
 struct CurrencyTextField: View {
     @Binding private var amount: Decimal?
     @State private var digits: String
@@ -94,6 +98,9 @@ struct CurrencyTextField: View {
         }
     }
 
+    /// Keeps `digits` in a single canonical form so two different keystrokes representing
+    /// the same value (e.g. "0" then another "0") end up as the identical string —
+    /// `commit`'s equality check depends on that.
     private func strippingExtraLeadingZeros(_ digits: String) -> String {
         guard let firstNonZero = digits.firstIndex(where: { $0 != "0" }) else {
             return digits.isEmpty ? "" : "0"
@@ -118,6 +125,9 @@ struct CurrencyTextField: View {
         return "\(rounded)".filter(\.isNumber)
     }
 
+    /// `NumberFormatter.maximumFractionDigits`, once `currencyCode` is set, reports each
+    /// currency's real minor-unit digit count (0 for JPY, 2 for USD/EUR, 3 for BHD/KWD) —
+    /// there's no simpler Foundation API for this.
     private static func fractionDigits(for currencyCode: String) -> Int {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
