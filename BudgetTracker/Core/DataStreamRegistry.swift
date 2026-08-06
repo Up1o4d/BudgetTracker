@@ -14,7 +14,7 @@ actor DataStreamRegistry<Element: Sendable> {
         let continuation: AsyncStream<DataState<Element>>.Continuation
         var lastData: [Element]
         var generation: Int
-        var refresh: Query?   // nil until the first fetch binds this stream's query
+        var refresh: Query? // nil until the first fetch binds this stream's query
     }
 
     private var registry: [UUID: Subscription] = [:]
@@ -61,7 +61,8 @@ actor DataStreamRegistry<Element: Sendable> {
         for id in registry.keys {
             guard let subscription = registry[id], let refresh = subscription.refresh else { continue }
             subscription.continuation.yield(
-                DataState(loadingState: .loading, data: subscription.lastData))
+                DataState(loadingState: .loading, data: subscription.lastData)
+            )
             let settled = await settledState(lastData: subscription.lastData, query: refresh)
             registry[id]?.lastData = settled.data
             registry[id]?.continuation.yield(settled)
@@ -72,11 +73,13 @@ actor DataStreamRegistry<Element: Sendable> {
     /// loaded list.
     private func settledState(lastData: [Element], query: Query) async -> DataState<Element> {
         do {
-            return DataState(loadingState: .idle, data: try await query())
+            return try DataState(loadingState: .idle, data: await query())
         } catch {
             return DataState(loadingState: .error, data: lastData, error: error)
         }
     }
 
-    private func deregister(_ id: UUID) { registry.removeValue(forKey: id) }
+    private func deregister(_ id: UUID) {
+        registry.removeValue(forKey: id)
+    }
 }

@@ -39,6 +39,7 @@ struct RootView: View {
                     case .addTransaction:
                         AddView(viewModel: .init(
                             transactionsProvider: viewModel.appDependencies.transactionsProvider,
+                            categoriesProvider: viewModel.appDependencies.categoriesProvider,
                             appSettings: viewModel.appDependencies.appSettings,
                             onSaved: { router.presentedSheet = nil }
                         ))
