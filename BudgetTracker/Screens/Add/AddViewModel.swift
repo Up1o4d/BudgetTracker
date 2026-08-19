@@ -32,7 +32,7 @@ final class AddViewModel {
                 vendorSet.insert($0)
                 return true
             }
-        return Array(vendorList.prefix(10))
+        return Array(vendorList.prefix(6))
     }
 
     private let onSaved: (() -> Void)?
@@ -99,6 +99,36 @@ final class AddViewModel {
         }
 
         return await categoriesProvider.fetchCategories(uuid: streamUUID)
+    }
+}
+
+// MARK: - Date quick options
+
+extension AddViewModel {
+    typealias QuickDateOption = (label: String, daysAgo: Int)
+
+    var quickDateOptions: [QuickDateOption] {
+        (0 ... 2).map { offset in (label: quickDateLabel(daysAgo: offset), daysAgo: offset) }
+    }
+
+    func quickDateLabel(daysAgo: Int) -> String {
+        switch daysAgo {
+        case 0: String(localized: "screen.add.date.today")
+        case 1: String(localized: "screen.add.date.yesterday")
+        default: String(localized: "screen.add.date.daysAgo", defaultValue: "\(daysAgo) days ago")
+        }
+    }
+
+    private func quickDateOptionToDate(_ option: QuickDateOption) -> Date {
+        return Calendar.current.date(byAdding: .day, value: -option.daysAgo, to: .now) ?? .now
+    }
+
+    func selectQuickDateOption(_ option: QuickDateOption) {
+        date = quickDateOptionToDate(option)
+    }
+
+    func quickDateOptionIsSelected(_ option: QuickDateOption) -> Bool {
+        return Calendar.current.isDate(date, inSameDayAs: quickDateOptionToDate(option))
     }
 }
 
