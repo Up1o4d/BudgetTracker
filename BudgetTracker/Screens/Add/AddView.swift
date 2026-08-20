@@ -5,26 +5,29 @@ struct AddView: View {
     @State var datePickerIsPresented: Bool = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("screen.add.title")
+        VStack(spacing: 0) {
+            headerView
 
-                amountSection
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    amountSection
 
-                vendorSection
+                    vendorSection
 
-                categorySection
+                    categorySection
 
-                dateSection
+                    dateSection
 
-                Button("Save") {
-                    viewModel.save()
+                    Button("Save") {
+                        viewModel.save()
+                    }
+                    .buttonStyle(PrimaryButtonStyle(isFullWidth: true))
+                    .disabled(!viewModel.isFormValid || viewModel.isSaving)
                 }
-                .buttonStyle(PrimaryButtonStyle(isFullWidth: true))
-                .disabled(!viewModel.isFormValid || viewModel.isSaving)
             }
-            .padding(.horizontal, 16)
         }
+        .padding(.horizontal, 16)
+        .presentationDragIndicator(.visible)
         .overlay {
             if viewModel.isSaving {
                 ProgressView()
@@ -34,6 +37,24 @@ struct AddView: View {
         .scrollContentBackground(.hidden)
         .task { await viewModel.loadTransactions() }
         .task { await viewModel.loadCategories() }
+    }
+
+    private var headerView: some View {
+        HStack {
+            Text("screen.add.title")
+                .textStyle(.titleMD)
+
+            Spacer()
+
+            Image(systemName: "xmark")
+                .padding(10)
+                .background(
+                    Circle()
+                        .fill(Color.bgSurface)
+                        .stroke(Color.borderSubtle, lineWidth: 1)
+                )
+        }
+        .padding(.vertical, 16)
     }
 
     private var amountSection: some View {
@@ -65,7 +86,7 @@ struct AddView: View {
                     FlowLayout {
                         ForEach(viewModel.sugestedVendors, id: \.self) { vendor in
                             Button(action: { viewModel.vendor = vendor }) {
-                                Chip(text: vendor)
+                                Chip(text: vendor, isSelected: viewModel.vendor == vendor)
                             }
                         }
                     }

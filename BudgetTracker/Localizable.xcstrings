@@ -275,13 +275,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add"
+            "value" : "Add transaction"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodaj"
+            "value" : "Dodaj transakcijo"
           }
         }
       }
