@@ -8,7 +8,7 @@ struct QuickDateOption: Hashable {
         Calendar.current.date(byAdding: .day, value: -daysAgo, to: now) ?? now
     }
 
-    func isSameDay(as date: Date) -> Bool {
-        Calendar.current.isDate(date, inSameDayAs: toDate())
+    func isSameDay(as date: Date, referenceDate: Date = .now) -> Bool {
+        Calendar.current.isDate(date, inSameDayAs: toDate(from: referenceDate))
     }
 }

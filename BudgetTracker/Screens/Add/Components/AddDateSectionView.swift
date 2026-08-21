@@ -3,6 +3,7 @@ import SwiftUI
 struct AddDateSectionView: View {
     @Binding var date: Date
     let quickDateOptions: [QuickDateOption]
+    var referenceDate: Date = .now
 
     @State private var datePickerIsPresented: Bool = false
 
@@ -35,10 +36,10 @@ struct AddDateSectionView: View {
 
                 FlowLayout {
                     ForEach(quickDateOptions, id: \.daysAgo) { option in
-                        Button(action: { date = option.toDate() }) {
+                        Button(action: { date = option.toDate(from: referenceDate) }) {
                             Chip(
                                 text: option.label,
-                                isSelected: option.isSameDay(as: date)
+                                isSelected: option.isSameDay(as: date, referenceDate: referenceDate)
                             )
                         }
                         .buttonStyle(.plain)
