@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AddView: View {
+    @Environment(\.dismiss) var dismiss
     @State var viewModel: AddViewModel
     @State var datePickerIsPresented: Bool = false
 
@@ -46,13 +47,15 @@ struct AddView: View {
 
             Spacer()
 
-            Image(systemName: "xmark")
-                .padding(10)
-                .background(
-                    Circle()
-                        .fill(Color.bgSurface)
-                        .stroke(Color.borderSubtle, lineWidth: 1)
-                )
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(Color.bgSurface)
+                            .stroke(Color.borderSubtle, lineWidth: 1)
+                    )
+            }
         }
         .padding(.vertical, 16)
     }
