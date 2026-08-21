@@ -3,7 +3,6 @@ import SwiftUI
 struct AddView: View {
     @Environment(\.dismiss) var dismiss
     @State var viewModel: AddViewModel
-    @State var datePickerIsPresented: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,13 +10,21 @@ struct AddView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    amountSection
+                    AddAmountSectionView(amount: $viewModel.amount, currencyCode: viewModel.currencyCode)
 
-                    vendorSection
+                    AddVendorSectionView(
+                        vendor: $viewModel.vendor,
+                        suggestedVendors: viewModel.sugestedVendors,
+                        isLoading: viewModel.transactionsState.loadingState == .loading
+                    )
 
-                    categorySection
+                    AddCategorySectionView(
+                        categories: viewModel.categoriesState.data,
+                        selectedCategory: $viewModel.selectedCategory,
+                        isLoading: viewModel.categoriesState.loadingState == .loading
+                    )
 
-                    dateSection
+                    AddDateSectionView(date: $viewModel.date, quickDateOptions: viewModel.quickDateOptions)
 
                     Button("Save") {
                         viewModel.save()
@@ -58,129 +65,6 @@ struct AddView: View {
             }
         }
         .padding(.vertical, 16)
-    }
-
-    private var amountSection: some View {
-        VStack(spacing: 16) {
-            Text("AMOUNT") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
-            CurrencyTextField(
-                amount: $viewModel.amount,
-                currencyCode: viewModel.currencyCode
-            )
-            .multilineTextAlignment(.center)
-            .textStyle(.displayXL)
-        }
-        .padding(16)
-        .background(backgroundCard)
-    }
-
-    private var vendorSection: some View {
-        VStack(alignment: .leading) {
-            Text("VENDOR") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
-            VStack {
-                TextField("Where did you spend?", text: $viewModel.vendor)
-                if viewModel.transactionsState.loadingState == .loading {
-                    ProgressView()
-                } else {
-                    FlowLayout {
-                        ForEach(viewModel.sugestedVendors, id: \.self) { vendor in
-                            Button(action: { viewModel.vendor = vendor }) {
-                                Chip(text: vendor, isSelected: viewModel.vendor == vendor)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .padding(16)
-            .background(backgroundCard)
-        }
-    }
-
-    private var categorySection: some View {
-        VStack(alignment: .leading) {
-            Text("CATEGORY") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
-            VStack {
-                if viewModel.categoriesState.loadingState == .loading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else {
-                    FlowLayout {
-                        ForEach(viewModel.categoriesState.data, id: \.self) { category in
-                            Button(action: { viewModel.selectedCategory = category }) {
-                                Chip(
-                                    text: category.name,
-                                    systemImage: category.symbolName,
-                                    iconColor: Color(hex: category.colorHex),
-                                    isSelected: viewModel.selectedCategory == category
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .padding(16)
-            .background(backgroundCard)
-        }
-    }
-
-    private var dateSection: some View {
-        VStack(alignment: .leading) {
-            Text("DATE") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
-            VStack(spacing: 16.0) {
-                Button(action: { datePickerIsPresented = true }) {
-                    HStack {
-                        Text(viewModel.date.formatted("dd/MM/yyyy"))
-                        Spacer()
-                        Image(systemName: "calendar")
-                    }
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $datePickerIsPresented) {
-                    DatePicker(
-                        "Select Date",
-                        selection: $viewModel.date,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .presentationDetents([.medium])
-                    .onChange(of: viewModel.date) {
-                        datePickerIsPresented = false
-                    }
-                }
-
-                FlowLayout {
-                    ForEach(viewModel.quickDateOptions, id: \.daysAgo) { option in
-                        Button(action: { viewModel.selectQuickDateOption(option) }) {
-                            Chip(
-                                text: option.label,
-                                isSelected: viewModel.quickDateOptionIsSelected(option)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(16)
-            .background(backgroundCard)
-        }
-    }
-
-    private var backgroundCard: some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(Color.bgSurface)
-            .stroke(Color.borderSubtle, lineWidth: 1)
     }
 }
 

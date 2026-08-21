@@ -1,0 +1,14 @@
+import Foundation
+
+struct QuickDateOption: Hashable {
+    let label: String
+    let daysAgo: Int
+
+    func toDate(from now: Date = .now) -> Date {
+        Calendar.current.date(byAdding: .day, value: -daysAgo, to: now) ?? now
+    }
+
+    func isSameDay(as date: Date) -> Bool {
+        Calendar.current.isDate(date, inSameDayAs: toDate())
+    }
+}
