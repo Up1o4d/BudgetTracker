@@ -106,15 +106,7 @@ final class AddViewModel {
 
 extension AddViewModel {
     var quickDateOptions: [QuickDateOption] {
-        (0 ... 2).map { offset in QuickDateOption(label: quickDateLabel(daysAgo: offset), daysAgo: offset) }
-    }
-
-    func quickDateLabel(daysAgo: Int) -> String {
-        switch daysAgo {
-        case 0: String(localized: "screen.add.date.today")
-        case 1: String(localized: "screen.add.date.yesterday")
-        default: String(localized: "screen.add.date.daysAgo", defaultValue: "\(daysAgo) days ago")
-        }
+        (0 ... 2).map { offset in QuickDateOption(daysAgo: offset) }
     }
 }
 

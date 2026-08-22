@@ -1,7 +1,6 @@
 import Foundation
 
 struct QuickDateOption: Hashable {
-    let label: String
     let daysAgo: Int
 
     func toDate(from now: Date = .now) -> Date {

@@ -10,9 +10,9 @@ struct AddDateSectionViewSnapshotTests {
     // regardless of which day the suite runs on.
     private static let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
     private static let quickDateOptions: [QuickDateOption] = [
-        QuickDateOption(label: "Today", daysAgo: 0),
-        QuickDateOption(label: "Yesterday", daysAgo: 1),
-        QuickDateOption(label: "2 days ago", daysAgo: 2),
+        QuickDateOption(daysAgo: 0),
+        QuickDateOption(daysAgo: 1),
+        QuickDateOption(daysAgo: 2),
     ]
 
     // MARK: - Today selected
@@ -43,7 +43,7 @@ struct AddDateSectionViewSnapshotTests {
 
     @Test
     func addDateSectionView_yesterdaySelected_light() {
-        let yesterday = QuickDateOption(label: "Yesterday", daysAgo: 1).toDate(from: Self.referenceDate)
+        let yesterday = QuickDateOption(daysAgo: 1).toDate(from: Self.referenceDate)
         let view = AddDateSectionView(
             date: .constant(yesterday),
             quickDateOptions: Self.quickDateOptions,
@@ -55,7 +55,7 @@ struct AddDateSectionViewSnapshotTests {
 
     @Test
     func addDateSectionView_yesterdaySelected_dark() {
-        let yesterday = QuickDateOption(label: "Yesterday", daysAgo: 1).toDate(from: Self.referenceDate)
+        let yesterday = QuickDateOption(daysAgo: 1).toDate(from: Self.referenceDate)
         let view = AddDateSectionView(
             date: .constant(yesterday),
             quickDateOptions: Self.quickDateOptions,

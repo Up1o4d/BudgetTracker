@@ -38,7 +38,7 @@ struct AddDateSectionView: View {
                     ForEach(quickDateOptions, id: \.daysAgo) { option in
                         Button(action: { date = option.toDate(from: referenceDate) }) {
                             Chip(
-                                text: option.label,
+                                text: quickDateLabel(daysAgo: option.daysAgo),
                                 isSelected: option.isSameDay(as: date, referenceDate: referenceDate)
                             )
                         }
@@ -50,15 +50,23 @@ struct AddDateSectionView: View {
             .cardBackground()
         }
     }
+
+    private func quickDateLabel(daysAgo: Int) -> String {
+        switch daysAgo {
+        case 0: String(localized: "screen.add.date.today")
+        case 1: String(localized: "screen.add.date.yesterday")
+        default: String(localized: "screen.add.date.daysAgo", defaultValue: "\(daysAgo) days ago")
+        }
+    }
 }
 
 #Preview {
     @Previewable @State var date = Date()
 
     let options: [QuickDateOption] = [
-        QuickDateOption(label: "Today", daysAgo: 0),
-        QuickDateOption(label: "Yesterday", daysAgo: 1),
-        QuickDateOption(label: "2 days ago", daysAgo: 2),
+        QuickDateOption(daysAgo: 0),
+        QuickDateOption(daysAgo: 1),
+        QuickDateOption(daysAgo: 2),
     ]
 
     AddDateSectionView(date: $date, quickDateOptions: options)
