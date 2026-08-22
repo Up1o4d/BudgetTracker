@@ -11,6 +11,7 @@ argument-hint: "[file or class to test]"
 | ViewModel | Unit | `BudgetTrackerTests/ViewModelTests/` |
 | Service / provider | Unit | `BudgetTrackerTests/ServiceTests/` |
 | View / component | Snapshot — `swift-snapshot-testing` | `BudgetTrackerTests/SnapshotTests/` |
+| Plain logic type (no dependencies) | Unit | `BudgetTrackerTests/UnitTests/` |
 
 ## Suite structure
 

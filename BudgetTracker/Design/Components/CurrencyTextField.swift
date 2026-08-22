@@ -2,34 +2,26 @@ import SwiftUI
 
 /// Bank-style amount entry: each digit typed becomes the new least-significant digit
 /// (the currency's smallest unit), shifting everything already entered one place to the
-/// left. `digits` is the raw buffer driving that; `canonicalText` is what's actually
+/// left. `buffer` is the raw digit state driving that; `canonicalText` is what's actually
 /// shown, derived fresh from it on every render.
 struct CurrencyTextField: View {
     @Binding private var amount: Decimal?
-    @State private var digits: String
+    @State private var buffer: CurrencyDigitBuffer
     @State private var pendingRestoreEpoch = 0
 
     private let currencyCode: String
     private let fractionDigits: Int
 
-    private static let maxDigits = 12
-
     init(amount: Binding<Decimal?>, currencyCode: String) {
         _amount = amount
         self.currencyCode = currencyCode
-        fractionDigits = Self.fractionDigits(for: currencyCode)
-        _digits = State(initialValue: Self.digits(from: amount.wrappedValue, fractionDigits: fractionDigits))
-    }
-
-    private var decimalValue: Decimal {
-        let raw = Decimal(string: digits) ?? 0
-        guard fractionDigits > 0 else { return raw }
-        return (raw as NSDecimalNumber).multiplying(byPowerOf10: Int16(-fractionDigits)).decimalValue
+        fractionDigits = CurrencyDigitBuffer.fractionDigits(for: currencyCode)
+        _buffer = State(initialValue: CurrencyDigitBuffer(amount: amount.wrappedValue, fractionDigits: fractionDigits))
     }
 
     private var canonicalText: String {
         guard amount != nil else { return "" }
-        return decimalValue.formatted(.currency(code: currencyCode))
+        return buffer.decimalValue.formatted(.currency(code: currencyCode))
     }
 
     private var textBinding: Binding<String> {
@@ -43,38 +35,24 @@ struct CurrencyTextField: View {
         )
         .textFieldStyle(.plain)
         .keyboardType(.numberPad)
-        .onChange(of: digits) {
-            amount = digits.isEmpty ? nil : decimalValue
+        .onChange(of: buffer) {
+            amount = buffer.isEmpty ? nil : buffer.decimalValue
         }
         .onChange(of: amount) { _, newValue in
-            let externalDigits = Self.digits(from: newValue, fractionDigits: fractionDigits)
-            if externalDigits != digits {
-                digits = externalDigits
+            let external = CurrencyDigitBuffer(amount: newValue, fractionDigits: fractionDigits)
+            if external != buffer {
+                buffer = external
             }
         }
     }
 
-    /// Derives the new digit buffer from what the text field now displays, by comparing its
-    /// length against `canonicalText` (the text before this edit) to detect an appended or
-    /// removed character rather than diffing content — which stays correct even though
-    /// grouping separators/currency symbols shift position as digits are typed.
     private func handleInput(_ newValue: String) {
-        let delta = newValue.count - canonicalText.count
-        guard delta != 0 else { return }
-
-        let updatedDigits: String
-        if delta > 0 {
-            let appended = String(newValue.suffix(delta)).filter(\.isNumber)
-            updatedDigits = String((digits + appended).suffix(Self.maxDigits))
-        } else {
-            updatedDigits = String(digits.dropLast(min(-delta, digits.count)))
-        }
-
-        commit(strippingExtraLeadingZeros(updatedDigits))
+        guard let updated = buffer.applyingEdit(newText: newValue, previousText: canonicalText) else { return }
+        commit(updated)
     }
 
     /// SwiftUI only re-pushes a `Binding<String>`'s value into a focused text field when it
-    /// actually changes. If the normalized digits equal what's already there (e.g. typing a
+    /// actually changes. If the normalized buffer equals what's already there (e.g. typing a
     /// redundant leading zero), the raw un-formatted keystroke is left on screen until the
     /// field loses focus. Routing through an empty value first forces a real change, so
     /// SwiftUI corrects the display, then the real value is restored a moment later.
@@ -82,57 +60,20 @@ struct CurrencyTextField: View {
     /// `pendingRestoreEpoch` guards against a fast follow-up edit landing in that brief window:
     /// if another `commit` happens before the restore fires, the stale restore is dropped
     /// instead of clobbering the newer value.
-    private func commit(_ newDigits: String) {
+    private func commit(_ newBuffer: CurrencyDigitBuffer) {
         pendingRestoreEpoch += 1
-        guard digits == newDigits else {
-            digits = newDigits
+        guard buffer == newBuffer else {
+            buffer = newBuffer
             return
         }
 
         let epoch = pendingRestoreEpoch
-        digits = ""
+        buffer = CurrencyDigitBuffer(digits: "", fractionDigits: fractionDigits)
         Task {
             try? await Task.sleep(for: .milliseconds(5))
             guard epoch == pendingRestoreEpoch else { return }
-            digits = newDigits
+            buffer = newBuffer
         }
-    }
-
-    /// Keeps `digits` in a single canonical form so two different keystrokes representing
-    /// the same value (e.g. "0" then another "0") end up as the identical string —
-    /// `commit`'s equality check depends on that.
-    private func strippingExtraLeadingZeros(_ digits: String) -> String {
-        guard let firstNonZero = digits.firstIndex(where: { $0 != "0" }) else {
-            return digits.isEmpty ? "" : "0"
-        }
-        return String(digits[firstNonZero...])
-    }
-
-    private static func digits(from amount: Decimal?, fractionDigits: Int) -> String {
-        func roundDecimal(_ val: Decimal) -> Decimal {
-            var result = Decimal()
-            var value = val
-            NSDecimalRound(&result, &value, 0, .plain)
-            return result
-        }
-
-        guard let amount else { return "" }
-        let scaled = fractionDigits > 0
-            ? (amount as NSDecimalNumber).multiplying(byPowerOf10: Int16(fractionDigits)).decimalValue
-            : amount
-        let rounded = roundDecimal(scaled)
-        guard rounded != 0 else { return "0" }
-        return "\(rounded)".filter(\.isNumber)
-    }
-
-    /// `NumberFormatter.maximumFractionDigits`, once `currencyCode` is set, reports each
-    /// currency's real minor-unit digit count (0 for JPY, 2 for USD/EUR, 3 for BHD/KWD) —
-    /// there's no simpler Foundation API for this.
-    private static func fractionDigits(for currencyCode: String) -> Int {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        return formatter.maximumFractionDigits
     }
 }
 
