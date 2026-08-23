@@ -7,9 +7,9 @@ import Testing
 struct AddViewSnapshotTests {
     // MARK: - Empty
 
-    // `.task` loaders are attached but not awaited here, so the vendor/category sections
-    // render in their loading state — that's covered in detail by the section-level tests;
-    // this is purely a whole-screen layout/composition check.
+    /// `.task` loaders are attached but not awaited here, so the vendor/category sections
+    /// render in their loading state — that's covered in detail by the section-level tests;
+    /// this is purely a whole-screen layout/composition check.
     @Test
     func addView_empty_light() {
         let view = AddView(viewModel: makeViewModel())
@@ -53,10 +53,25 @@ struct AddViewSnapshotTests {
     }
 
     private func makeViewModel() -> AddViewModel {
-        AddViewModel(
+        let viewModel = AddViewModel(
             transactionsProvider: InMemoryTransactionsProvider(),
             categoriesProvider: InMemoryCategoriesProvider(),
             appSettings: InMemoryAppSettings()
         )
+        viewModel.transactionsState = DataState<BudgetTracker.Transaction>(
+            loadingState: .idle,
+            data: makeDummyTransactions()
+        )
+        viewModel.categoriesState = DataState<BudgetTracker.Category>(
+            loadingState: .idle,
+            data: BudgetTracker.Category.all
+        )
+        viewModel.date = Date(timeIntervalSince1970: 1_700_000_000)
+        return viewModel
+    }
+
+    private func makeDummyTransactions() -> [BudgetTracker.Transaction] {
+        return [
+        ]
     }
 }

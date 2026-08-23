@@ -10,8 +10,9 @@ final class AddViewModel {
     private var categoriesObserverTask: Task<Void, Never>?
     private var transactionStreamUUID: UUID?
     private var categoryStreamUUID: UUID?
-    private(set) var transactionsState: DataState<Transaction> = .init()
-    private(set) var categoriesState: DataState<Category> = .init()
+
+    var transactionsState: DataState<Transaction> = .init()
+    var categoriesState: DataState<Category> = .init()
 
     var amount: Decimal?
     var vendor: String = ""
