@@ -14,7 +14,7 @@ struct AddView: View {
 
                     AddVendorSectionView(
                         vendor: $viewModel.vendor,
-                        suggestedVendors: viewModel.sugestedVendors,
+                        suggestedVendors: viewModel.suggestedVendors,
                         isLoading: viewModel.transactionsState.loadingState == .loading
                     )
 

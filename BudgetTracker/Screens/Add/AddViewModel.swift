@@ -20,21 +20,6 @@ final class AddViewModel {
     var date: Date = .now
 
     private(set) var isSaving: Bool = false
-    var isFormValid: Bool {
-        !vendor.trimmingCharacters(in: .whitespaces).isEmpty && amount != nil
-    }
-
-    var sugestedVendors: [String] {
-        var vendorSet: Set<String> = []
-        let vendorList = transactionsState.data
-            .map { $0.vendor }
-            .filter {
-                guard !vendorSet.contains($0) else { return false }
-                vendorSet.insert($0)
-                return true
-            }
-        return Array(vendorList.prefix(6))
-    }
 
     private let onSaved: (() -> Void)?
 
@@ -49,11 +34,39 @@ final class AddViewModel {
         self.appSettings = appSettings
         self.onSaved = onSaved
     }
+}
+
+// MARK: - Form state
+
+extension AddViewModel {
+    var isFormValid: Bool {
+        !vendor.trimmingCharacters(in: .whitespaces).isEmpty && amount != nil && selectedCategory != nil
+    }
+
+    var suggestedVendors: [String] {
+        var vendorSet: Set<String> = []
+        let vendorList = transactionsState.data
+            .map { $0.vendor }
+            .filter {
+                guard !vendorSet.contains($0) else { return false }
+                vendorSet.insert($0)
+                return true
+            }
+        return Array(vendorList.prefix(6))
+    }
+
+    var quickDateOptions: [QuickDateOption] {
+        (0 ... 2).map { offset in QuickDateOption(daysAgo: offset) }
+    }
 
     var currencyCode: String {
         appSettings.currency
     }
+}
 
+// MARK: - Saving
+
+extension AddViewModel {
     func save() {
         guard let amount = amount, let selectedCategory = selectedCategory, isFormValid else { return }
         let transaction = Transaction(
@@ -71,7 +84,11 @@ final class AddViewModel {
             isSaving = false
         }
     }
+}
 
+// MARK: - Loading
+
+extension AddViewModel {
     @discardableResult
     func loadTransactions() async -> Result<[Transaction], Error> {
         var streamUUID: UUID
@@ -103,13 +120,7 @@ final class AddViewModel {
     }
 }
 
-// MARK: - Date quick options
-
-extension AddViewModel {
-    var quickDateOptions: [QuickDateOption] {
-        (0 ... 2).map { offset in QuickDateOption(daysAgo: offset) }
-    }
-}
+// MARK: - Stream observers
 
 extension AddViewModel {
     func setUpTransactionsStreamObserver() async -> (Task<Void, Never>, UUID) {

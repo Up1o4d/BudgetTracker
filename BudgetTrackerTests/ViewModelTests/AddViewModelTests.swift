@@ -69,10 +69,19 @@ struct AddViewModelTests {
     }
 
     @Test
-    func isFormValid_trueWhenVendorAndAmountPresent() {
+    func isFormValid_falseWhenCategoryMissing() {
+        let sut = makeSUT()
+        sut.vendor = "vendor"
+        sut.amount = 5
+        #expect(sut.isFormValid == false)
+    }
+
+    @Test
+    func isFormValid_trueWhenVendorAmountAndCategoryPresent() {
         let sut = makeSUT()
         sut.vendor = "Coffee Shop"
         sut.amount = 5
+        sut.selectedCategory = .dining
         #expect(sut.isFormValid == true)
     }
 
@@ -90,7 +99,7 @@ struct AddViewModelTests {
     @Test
     func suggestedVendors_emptyWhenNoTransactionsLoaded() {
         let sut = makeSUT()
-        #expect(sut.sugestedVendors.isEmpty)
+        #expect(sut.suggestedVendors.isEmpty)
     }
 
     @Test
@@ -104,7 +113,7 @@ struct AddViewModelTests {
         await sut.loadTransactions()
         await waitUntil { sut.transactionsState.data.count == 3 }
 
-        #expect(sut.sugestedVendors == ["Whole Foods", "Sushi Bar"])
+        #expect(sut.suggestedVendors == ["Whole Foods", "Sushi Bar"])
     }
 
     @Test
@@ -116,7 +125,7 @@ struct AddViewModelTests {
         await sut.loadTransactions()
         await waitUntil { sut.transactionsState.data.count == 8 }
 
-        #expect(sut.sugestedVendors.count == 6)
+        #expect(sut.suggestedVendors.count == 6)
     }
 
     // MARK: - loadTransactions()
