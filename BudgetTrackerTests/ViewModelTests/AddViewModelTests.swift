@@ -252,6 +252,24 @@ struct AddViewModelTests {
         #expect(sut.isSaving == false)
     }
 
+    @Test
+    func save_setsShowErrorAlertAndSkipsOnSavedWhenSaveFails() async {
+        var savedCallCount = 0
+        let sut = makeSUT(onSaved: { savedCallCount += 1 })
+        transactionsProvider.stubbedError = NSError(domain: "test", code: 0)
+        sut.vendor = "Coffee Shop"
+        sut.amount = 5
+        sut.selectedCategory = .dining
+
+        sut.save()
+        await waitUntil { sut.showErrorAlert }
+
+        #expect(sut.showErrorAlert == true)
+        #expect(savedCallCount == 0)
+        #expect(sut.isSaving == false)
+        #expect(transactionsProvider.stubbedTransactions.isEmpty)
+    }
+
     // MARK: - quickDateOptions
 
     @Test

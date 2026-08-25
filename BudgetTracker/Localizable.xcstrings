@@ -186,6 +186,40 @@
         }
       }
     },
+    "screen.add.error.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We couldn't save your transaction. Please try again."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transakcije nismo mogli shraniti. Poskusite znova."
+          }
+        }
+      }
+    },
+    "screen.add.error.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nekaj je šlo narobe"
+          }
+        }
+      }
+    },
     "screen.add.date.daysAgo" : {
       "extractionState" : "manual",
       "localizations" : {

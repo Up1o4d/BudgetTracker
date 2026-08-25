@@ -53,6 +53,7 @@ final class MockTransactionsProvider: TransactionsProviderProtocol, @unchecked S
     }
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {
+        if let error = stubbedError { throw error }
         stubbedTransactions.append(contentsOf: newTransactions)
 
         // Re-emit only for streams that have been fetched (filter bound); never-fetched streams

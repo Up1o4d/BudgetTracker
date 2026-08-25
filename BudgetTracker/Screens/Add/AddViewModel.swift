@@ -20,6 +20,7 @@ final class AddViewModel {
     var date: Date = .now
 
     private(set) var isSaving: Bool = false
+    var showErrorAlert: Bool = false
 
     private let onSaved: (() -> Void)?
 
@@ -79,8 +80,12 @@ extension AddViewModel {
 
         Task {
             isSaving = true
-            try? await transactionsProvider.addTransactions([transaction])
-            onSaved?()
+            do {
+                try await transactionsProvider.addTransactions([transaction])
+                onSaved?()
+            } catch {
+                showErrorAlert = true
+            }
             isSaving = false
         }
     }
@@ -127,8 +132,10 @@ extension AddViewModel {
         transactionsObserverTask?.cancel()
         let (transactionProviderStream, uuid) = await transactionsProvider.transactionsStream()
         let observerTask = Task { [weak self] in
+            guard let self = self else { return }
             for await state in transactionProviderStream {
-                self?.transactionsState = state
+                if self.isSaving && state.loadingState == .loading { continue }
+                self.transactionsState = state
             }
         }
 

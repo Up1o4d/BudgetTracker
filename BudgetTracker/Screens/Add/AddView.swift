@@ -45,6 +45,10 @@ struct AddView: View {
         .scrollContentBackground(.hidden)
         .task { await viewModel.loadTransactions() }
         .task { await viewModel.loadCategories() }
+        .alert("screen.add.error.title", isPresented: $viewModel.showErrorAlert) {
+        } message: {
+            Text("screen.add.error.message")
+        }
     }
 
     private var headerView: some View {
