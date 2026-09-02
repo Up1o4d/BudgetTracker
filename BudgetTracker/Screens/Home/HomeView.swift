@@ -11,6 +11,7 @@ struct HomeView: View {
             case .idle:
                 VStack {
                     summarySection
+                    categorySpendingSection
                 }
             case .error:
                 ContentUnavailableView("screen.home.error", systemImage: "exclamationmark.triangle")
@@ -24,6 +25,23 @@ struct HomeView: View {
     var summarySection: some View {
         Text("summary")
             .cardBackground()
+    }
+
+    var categorySpendingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(viewModel.categorySpending, id: \.category.id) { spending in
+                HStack(spacing: 12) {
+                    Image(systemName: spending.category.symbolName)
+                        .foregroundStyle(Color(hex: spending.category.colorHex))
+                    Text(spending.category.name)
+                    Spacer()
+                    Text(spending.percentageOfTotal, format: .percent)
+                        .foregroundStyle(Color.textSecondary)
+                    Text(spending.totalAmount, format: .currency(code: viewModel.currency))
+                }
+            }
+        }
+        .cardBackground()
     }
 }
 

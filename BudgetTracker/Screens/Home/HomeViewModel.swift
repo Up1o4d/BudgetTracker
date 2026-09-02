@@ -2,6 +2,8 @@ import Foundation
 
 @Observable
 final class HomeViewModel {
+    typealias CategorySpending = (category: Category, totalAmount: Decimal, percentageOfTotal: Double)
+
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
     private let appSettings: any AppSettingsProtocol
@@ -15,6 +17,9 @@ final class HomeViewModel {
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
+    private(set) var selectedMonth: Int = Calendar.current.component(.month, from: .now)
+    private(set) var selectedYear: Int = Calendar.current.component(.year, from: .now)
+
     var viewLoadingState: LoadingState {
         guard !successfullyFinishedInitialLoad else { return .idle }
         return LoadingState.merged(transactionsState.loadingState, categoriesState.loadingState)
@@ -22,6 +27,24 @@ final class HomeViewModel {
 
     var currency: String {
         appSettings.currency
+    }
+
+    private var categoriesById: [String: Category] {
+        Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
+    }
+
+    var categorySpending: [CategorySpending] {
+        let totalsByCategoryId = Dictionary(grouping: transactionsState.data, by: \.categoryId)
+            .mapValues { transactions in transactions.reduce(Decimal.zero) { $0 + $1.amount } }
+        let totalSpending = totalsByCategoryId.values.reduce(Decimal.zero, +)
+
+        return totalsByCategoryId
+            .map { categoryId, totalAmount -> CategorySpending in
+                let category = categoriesById[categoryId] ?? Category.unknown
+                let percentage = totalSpending == 0 ? 0 : Double(truncating: (totalAmount / totalSpending) as NSNumber)
+                return (category: category, totalAmount: totalAmount, percentageOfTotal: percentage)
+            }
+            .sorted { $0.totalAmount > $1.totalAmount }
     }
 
     init(
@@ -52,8 +75,16 @@ final class HomeViewModel {
 
         return await transactionsProvider.fetchTransactions(
             uuid: streamUUID,
-            filter: TransactionFilter()
+            filter: TransactionFilter(dateRange: dateRange(forMonth: selectedMonth, year: selectedYear))
         )
+    }
+
+    /// Bounded to the whole month, not capped at "now" — so a transaction added later in the
+    /// month still matches without the VM needing to recompute the range.
+    private func dateRange(forMonth month: Int, year: Int, calendar: Calendar = .current) -> ClosedRange<Date> {
+        let startOfMonth = calendar.date(from: DateComponents(year: year, month: month)) ?? .now
+        let interval = calendar.dateInterval(of: .month, for: startOfMonth) ?? DateInterval(start: startOfMonth, end: startOfMonth)
+        return interval.start...interval.end
     }
 
     @discardableResult
