@@ -66,11 +66,11 @@ struct RootView: View {
     private func tabRoot(for tab: Tab) -> some View {
         switch tab {
         case .home:
-            VStack {
-                Text("home")
-            }
-            .frame(height: 50.0)
-            .defaultScreenStyle()
+            HomeView(viewModel: .init(
+                transactionsProvider: viewModel.appDependencies.transactionsProvider,
+                categoriesProvider: viewModel.appDependencies.categoriesProvider,
+                appSettings: viewModel.appDependencies.appSettings
+            ))
         case .activity:
             ActivityView(viewModel: .init(
                 transactionsProvider: viewModel.appDependencies.transactionsProvider,
