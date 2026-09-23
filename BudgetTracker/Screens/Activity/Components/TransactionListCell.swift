@@ -7,14 +7,7 @@ struct TransactionListCell: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(hex: category.colorHex).opacity(0.2))
-                .stroke(Color(hex: category.colorHex), lineWidth: 1.0)
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Image(systemName: category.symbolName)
-                        .foregroundStyle(Color(hex: category.colorHex))
-                )
+            CategoryIconView(category: category)
 
             VStack(alignment: .leading) {
                 Text(transaction.vendor)

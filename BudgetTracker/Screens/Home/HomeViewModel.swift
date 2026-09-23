@@ -2,7 +2,7 @@ import Foundation
 
 @Observable
 final class HomeViewModel {
-    typealias CategorySpending = (category: Category, totalAmount: Decimal, percentageOfTotal: Double)
+    typealias CategorySpending = (category: Category, totalAmount: Decimal, percentageOfTotal: Double, roundedPercentage: Int)
 
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
@@ -33,18 +33,55 @@ final class HomeViewModel {
         Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
     }
 
+    private var selectedMonthDateRange: ClosedRange<Date> {
+        dateRange(forMonth: selectedMonth, year: selectedYear)
+    }
+
+    private var previousMonthDateRange: ClosedRange<Date> {
+        let previous = previousMonth(before: selectedMonth, year: selectedYear)
+        return dateRange(forMonth: previous.month, year: previous.year)
+    }
+
     var categorySpending: [CategorySpending] {
-        let totalsByCategoryId = Dictionary(grouping: transactionsState.data, by: \.categoryId)
+        let currentMonthTransactions = transactionsState.data.filter { selectedMonthDateRange.contains($0.date) }
+        let totalsByCategoryId: [String: Decimal] = Dictionary(grouping: currentMonthTransactions, by: \.categoryId)
             .mapValues { transactions in transactions.reduce(Decimal.zero) { $0 + $1.amount } }
-        let totalSpending = totalsByCategoryId.values.reduce(Decimal.zero, +)
+
+        let totalSpending: Decimal = totalsByCategoryId.values.reduce(Decimal.zero, +)
+        var cumulPercentage: Double = 0
 
         return totalsByCategoryId
-            .map { categoryId, totalAmount -> CategorySpending in
-                let category = categoriesById[categoryId] ?? Category.unknown
-                let percentage = totalSpending == 0 ? 0 : Double(truncating: (totalAmount / totalSpending) as NSNumber)
-                return (category: category, totalAmount: totalAmount, percentageOfTotal: percentage)
+            .sorted {
+                // Sort by total amount.
+                // Important we do this before calculating roundedPercentage,
+                // because there can be minor variation of roundedPercentage based on the order,
+                // which can mess with snapshot tests
+                $0.value > $1.value
             }
-            .sorted { $0.totalAmount > $1.totalAmount }
+            .map { categoryId, totalAmount in
+                let category: Category = categoriesById[categoryId] ?? Category.unknown
+                let percentage = totalSpending.isZero ? 0 : Double(truncating: (totalAmount / totalSpending) as NSNumber)
+                let prevRoundedPercentage: Double = cumulPercentage.rounded()
+                cumulPercentage += (percentage * 100)
+                let currRoundedPercentage: Double = cumulPercentage.rounded()
+                let roundedPercent = Int(currRoundedPercentage - prevRoundedPercentage)
+                return CategorySpending(
+                    category: category,
+                    totalAmount: totalAmount,
+                    percentageOfTotal: percentage,
+                    roundedPercentage: roundedPercent
+                )
+            }
+    }
+
+    var maxCategorySpending: CategorySpending? {
+        categorySpending.first
+    }
+
+    var previousMonthTotalSpending: Decimal {
+        transactionsState.data
+            .filter { previousMonthDateRange.contains($0.date) }
+            .reduce(Decimal.zero) { $0 + $1.amount }
     }
 
     init(
@@ -75,7 +112,7 @@ final class HomeViewModel {
 
         return await transactionsProvider.fetchTransactions(
             uuid: streamUUID,
-            filter: TransactionFilter(dateRange: dateRange(forMonth: selectedMonth, year: selectedYear))
+            filter: TransactionFilter(dateRange: previousMonthDateRange.lowerBound ... selectedMonthDateRange.upperBound)
         )
     }
 
@@ -84,7 +121,15 @@ final class HomeViewModel {
     private func dateRange(forMonth month: Int, year: Int, calendar: Calendar = .current) -> ClosedRange<Date> {
         let startOfMonth = calendar.date(from: DateComponents(year: year, month: month)) ?? .now
         let interval = calendar.dateInterval(of: .month, for: startOfMonth) ?? DateInterval(start: startOfMonth, end: startOfMonth)
-        return interval.start...interval.end
+        return interval.start ... interval.end
+    }
+
+    private func previousMonth(before month: Int, year: Int) -> (month: Int, year: Int) {
+        month == 1 ? (12, year - 1) : (month - 1, year)
+    }
+
+    private func nextMonth(after month: Int, year: Int) -> (month: Int, year: Int) {
+        month == 12 ? (1, year + 1) : (month + 1, year)
     }
 
     @discardableResult
@@ -114,6 +159,23 @@ final class HomeViewModel {
         if case .success = transactions, case .success = categories {
             successfullyFinishedInitialLoad = true
         }
+    }
+
+    /// Returned so tests can await completion; production callers discard it.
+    @discardableResult
+    func selectNextMonth() -> Task<Void, Never> {
+        let next = nextMonth(after: selectedMonth, year: selectedYear)
+        selectedMonth = next.month
+        selectedYear = next.year
+        return Task { await self.loadTransactions() }
+    }
+
+    @discardableResult
+    func selectPreviousMonth() -> Task<Void, Never> {
+        let previous = previousMonth(before: selectedMonth, year: selectedYear)
+        selectedMonth = previous.month
+        selectedYear = previous.year
+        return Task { await self.loadTransactions() }
     }
 }
 
