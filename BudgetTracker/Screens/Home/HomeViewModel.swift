@@ -2,7 +2,16 @@ import Foundation
 
 @Observable
 final class HomeViewModel {
-    typealias CategorySpending = (category: Category, totalAmount: Decimal, percentageOfTotal: Double, roundedPercentage: Int)
+    struct CategorySpending: Identifiable, Equatable {
+        let category: Category
+        let totalAmount: Decimal
+        let percentageOfTotal: Double
+        let roundedPercentage: Int
+
+        var id: String {
+            category.id
+        }
+    }
 
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
@@ -42,12 +51,44 @@ final class HomeViewModel {
         return dateRange(forMonth: previous.month, year: previous.year)
     }
 
+    var previousMonthName: String {
+        let previous = previousMonth(before: selectedMonth, year: selectedYear)
+        let date = Calendar.current.date(from: DateComponents(year: previous.year, month: previous.month)) ?? .now
+        return date.formatted("MMMM")
+    }
+
+    private var currentMonthTransactions: [Transaction] {
+        transactionsState.data.filter { selectedMonthDateRange.contains($0.date) }
+    }
+
+    var budget: Decimal {
+        2300.0 // TODO: Add to user defaults / App settings
+    }
+
+    var totalCurrentMonthSpending: Decimal {
+        return currentMonthTransactions.reduce(Decimal.zero) { acc, transaction in
+            acc + transaction.amount
+        }
+    }
+
+    var percentageOfBudgetSpent: Double {
+        Double(truncating: (totalCurrentMonthSpending / budget) as NSNumber)
+    }
+
+    var lastMonthSpendingDiffPercent: Double? {
+        let totalLastMonthSpending: Decimal = transactionsState.data.filter {
+            previousMonthDateRange.contains($0.date)
+        }.reduce(Decimal.zero) { acc, transaction in
+            acc + transaction.amount
+        }
+        guard totalLastMonthSpending > 0 else { return nil }
+        return Double(truncating: (totalCurrentMonthSpending / totalLastMonthSpending) as NSNumber) - 1
+    }
+
     var categorySpending: [CategorySpending] {
-        let currentMonthTransactions = transactionsState.data.filter { selectedMonthDateRange.contains($0.date) }
         let totalsByCategoryId: [String: Decimal] = Dictionary(grouping: currentMonthTransactions, by: \.categoryId)
             .mapValues { transactions in transactions.reduce(Decimal.zero) { $0 + $1.amount } }
 
-        let totalSpending: Decimal = totalsByCategoryId.values.reduce(Decimal.zero, +)
         var cumulPercentage: Double = 0
 
         return totalsByCategoryId
@@ -60,7 +101,7 @@ final class HomeViewModel {
             }
             .map { categoryId, totalAmount in
                 let category: Category = categoriesById[categoryId] ?? Category.unknown
-                let percentage = totalSpending.isZero ? 0 : Double(truncating: (totalAmount / totalSpending) as NSNumber)
+                let percentage = totalCurrentMonthSpending.isZero ? 0 : Double(truncating: (totalAmount / totalCurrentMonthSpending) as NSNumber)
                 let prevRoundedPercentage: Double = cumulPercentage.rounded()
                 cumulPercentage += (percentage * 100)
                 let currRoundedPercentage: Double = cumulPercentage.rounded()
