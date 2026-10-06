@@ -2,17 +2,6 @@ import Foundation
 
 @Observable
 final class HomeViewModel {
-    struct CategorySpending: Identifiable, Equatable {
-        let category: Category
-        let totalAmount: Decimal
-        let percentageOfTotal: Double
-        let roundedPercentage: Int
-
-        var id: String {
-            category.id
-        }
-    }
-
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
     private let appSettings: any AppSettingsProtocol
