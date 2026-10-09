@@ -15,8 +15,7 @@ final class HomeViewModel {
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
-    private(set) var selectedMonth: Int = Calendar.current.component(.month, from: .now)
-    private(set) var selectedYear: Int = Calendar.current.component(.year, from: .now)
+    private(set) var selectedMonthYear: MonthYear = .current
 
     var viewLoadingState: LoadingState {
         guard !successfullyFinishedInitialLoad else { return .idle }
@@ -31,23 +30,8 @@ final class HomeViewModel {
         Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
     }
 
-    private var selectedMonthDateRange: ClosedRange<Date> {
-        dateRange(forMonth: selectedMonth, year: selectedYear)
-    }
-
-    private var previousMonthDateRange: ClosedRange<Date> {
-        let previous = previousMonth(before: selectedMonth, year: selectedYear)
-        return dateRange(forMonth: previous.month, year: previous.year)
-    }
-
-    var previousMonthName: String {
-        let previous = previousMonth(before: selectedMonth, year: selectedYear)
-        let date = Calendar.current.date(from: DateComponents(year: previous.year, month: previous.month)) ?? .now
-        return date.formatted("MMMM")
-    }
-
     private var currentMonthTransactions: [Transaction] {
-        transactionsState.data.filter { selectedMonthDateRange.contains($0.date) }
+        transactionsState.data.filter { selectedMonthYear.monthDateRange.contains($0.date) }
     }
 
     var budget: Decimal {
@@ -66,7 +50,7 @@ final class HomeViewModel {
 
     var lastMonthSpendingDiffPercent: Double? {
         let totalLastMonthSpending: Decimal = transactionsState.data.filter {
-            previousMonthDateRange.contains($0.date)
+            selectedMonthYear.previousMonth.monthDateRange.contains($0.date)
         }.reduce(Decimal.zero) { acc, transaction in
             acc + transaction.amount
         }
@@ -110,7 +94,7 @@ final class HomeViewModel {
 
     var previousMonthTotalSpending: Decimal {
         transactionsState.data
-            .filter { previousMonthDateRange.contains($0.date) }
+            .filter { selectedMonthYear.previousMonth.monthDateRange.contains($0.date) }
             .reduce(Decimal.zero) { $0 + $1.amount }
     }
 
@@ -142,24 +126,8 @@ final class HomeViewModel {
 
         return await transactionsProvider.fetchTransactions(
             uuid: streamUUID,
-            filter: TransactionFilter(dateRange: previousMonthDateRange.lowerBound ... selectedMonthDateRange.upperBound)
+            filter: TransactionFilter(dateRange: selectedMonthYear.previousMonth.monthDateRange.lowerBound ... selectedMonthYear.monthDateRange.upperBound)
         )
-    }
-
-    /// Bounded to the whole month, not capped at "now" — so a transaction added later in the
-    /// month still matches without the VM needing to recompute the range.
-    private func dateRange(forMonth month: Int, year: Int, calendar: Calendar = .current) -> ClosedRange<Date> {
-        let startOfMonth = calendar.date(from: DateComponents(year: year, month: month)) ?? .now
-        let interval = calendar.dateInterval(of: .month, for: startOfMonth) ?? DateInterval(start: startOfMonth, end: startOfMonth)
-        return interval.start ... interval.end
-    }
-
-    private func previousMonth(before month: Int, year: Int) -> (month: Int, year: Int) {
-        month == 1 ? (12, year - 1) : (month - 1, year)
-    }
-
-    private func nextMonth(after month: Int, year: Int) -> (month: Int, year: Int) {
-        month == 12 ? (1, year + 1) : (month + 1, year)
     }
 
     @discardableResult
@@ -194,17 +162,13 @@ final class HomeViewModel {
     /// Returned so tests can await completion; production callers discard it.
     @discardableResult
     func selectNextMonth() -> Task<Void, Never> {
-        let next = nextMonth(after: selectedMonth, year: selectedYear)
-        selectedMonth = next.month
-        selectedYear = next.year
+        selectedMonthYear = selectedMonthYear.nextMonth
         return Task { await self.loadTransactions() }
     }
 
     @discardableResult
     func selectPreviousMonth() -> Task<Void, Never> {
-        let previous = previousMonth(before: selectedMonth, year: selectedYear)
-        selectedMonth = previous.month
-        selectedYear = previous.year
+        selectedMonthYear = selectedMonthYear.previousMonth
         return Task { await self.loadTransactions() }
     }
 }

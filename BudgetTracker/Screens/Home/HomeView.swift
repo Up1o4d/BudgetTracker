@@ -17,7 +17,7 @@ struct HomeView: View {
                         currency: viewModel.currency,
                         percentageOfBudgetSpent: viewModel.percentageOfBudgetSpent,
                         lastMonthSpendingDiffPercent: viewModel.lastMonthSpendingDiffPercent,
-                        previousMonthName: viewModel.previousMonthName
+                        previousMonthName: viewModel.selectedMonthYear.previousMonth.monthName
                     )
                     // TODO: temporary month-switching controls, replace with real UI
                     HStack {
