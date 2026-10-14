@@ -1,13 +1,18 @@
 import Foundation
 
-struct MonthYear {
+struct MonthYear: Equatable {
     let month: Int
     let year: Int
 
-    static var current: MonthYear {
+    private init(month: Int, year: Int) {
+        self.month = month
+        self.year = year
+    }
+
+    static func current(from now: Date = .now) -> MonthYear {
         MonthYear(
-            month: Calendar.current.component(.month, from: .now),
-            year: Calendar.current.component(.year, from: .now)
+            month: Calendar.current.component(.month, from: now),
+            year: Calendar.current.component(.year, from: now)
         )
     }
 
@@ -28,5 +33,10 @@ struct MonthYear {
     var monthName: String {
         let date = Calendar.current.date(from: DateComponents(year: year, month: month)) ?? .now
         return date.formatted("MMMM")
+    }
+
+    var numberOfDaysInMonth: Int {
+        let date = Calendar.current.date(from: DateComponents(year: year, month: month)) ?? .now
+        return Calendar.current.range(of: .day, in: .month, for: date)?.count ?? 0
     }
 }

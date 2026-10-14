@@ -15,7 +15,7 @@ final class HomeViewModel {
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
-    private(set) var selectedMonthYear: MonthYear = .current
+    private(set) var selectedMonthYear: MonthYear = .current()
 
     var viewLoadingState: LoadingState {
         guard !successfullyFinishedInitialLoad else { return .idle }
@@ -90,6 +90,22 @@ final class HomeViewModel {
 
     var maxCategorySpending: CategorySpending? {
         categorySpending.first
+    }
+
+    var currentMonthDailySpendingSums: [Decimal] {
+        var dayCount: Int {
+            guard selectedMonthYear == MonthYear.current() else { return selectedMonthYear.numberOfDaysInMonth }
+            return Calendar.current.component(.day, from: .now)
+        }
+
+        var sums = Array(repeating: Decimal.zero, count: dayCount)
+        // TODO: Exclude income transactions once the model supports distinguishing them
+        for transaction in currentMonthTransactions {
+            let day = Calendar.current.component(.day, from: transaction.date)
+            guard day <= dayCount else { continue }
+            sums[day - 1] += transaction.amount
+        }
+        return sums
     }
 
     var previousMonthTotalSpending: Decimal {

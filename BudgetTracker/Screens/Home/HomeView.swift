@@ -19,6 +19,11 @@ struct HomeView: View {
                         lastMonthSpendingDiffPercent: viewModel.lastMonthSpendingDiffPercent,
                         previousMonthName: viewModel.selectedMonthYear.previousMonth.monthName
                     )
+                    HomeMonthToDateSpendingChartSection(
+                        selectedMonth: viewModel.selectedMonthYear,
+                        currentMonthDailySpendingSums: viewModel.currentMonthDailySpendingSums,
+                        currency: viewModel.currency
+                    )
                     // TODO: temporary month-switching controls, replace with real UI
                     HStack {
                         Button("Previous month") { viewModel.selectPreviousMonth() }
