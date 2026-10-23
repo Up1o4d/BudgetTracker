@@ -99,13 +99,20 @@ final class HomeViewModel {
         }
 
         var sums = Array(repeating: Decimal.zero, count: dayCount)
-        // TODO: Exclude income transactions once the model supports distinguishing them
+
         for transaction in currentMonthTransactions {
             let day = Calendar.current.component(.day, from: transaction.date)
             guard day <= dayCount else { continue }
             sums[day - 1] += transaction.amount
         }
         return sums
+    }
+
+    var selectedMonthHeaderText: String {
+        guard selectedMonthYear == MonthYear.current() else {
+            return selectedMonthYear.displayName
+        }
+        return "\(selectedMonthYear.displayName) · \(selectedMonthYear.daysRemaining())d left"
     }
 
     var previousMonthTotalSpending: Decimal {

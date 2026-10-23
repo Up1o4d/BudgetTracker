@@ -39,4 +39,13 @@ struct MonthYear: Equatable {
         let date = Calendar.current.date(from: DateComponents(year: year, month: month)) ?? .now
         return Calendar.current.range(of: .day, in: .month, for: date)?.count ?? 0
     }
+
+    var displayName: String {
+        let date = Calendar.current.date(from: DateComponents(year: year, month: month)) ?? .now
+        return date.formatted("MMMM yyyy")
+    }
+
+    func daysRemaining(from now: Date = .now) -> Int {
+        numberOfDaysInMonth - Calendar.current.component(.day, from: now)
+    }
 }
