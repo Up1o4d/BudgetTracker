@@ -9,46 +9,47 @@ struct HomeView: View {
             case .loading:
                 ProgressView()
             case .idle:
-                VStack(spacing: 16) {
-                    buildSectionWithLabels(
-                        leading: viewModel.selectedMonthHeaderText,
-                        trailing: "52 TXNS" // TODO: Localize
-                    ) {
-                        HomeSummarySectionView(
-                            categorySpending: viewModel.categorySpending,
-                            totalCurrentMonthSpending: viewModel.totalCurrentMonthSpending,
-                            budget: viewModel.budget,
-                            currency: viewModel.currency,
-                            percentageOfBudgetSpent: viewModel.percentageOfBudgetSpent,
-                            lastMonthSpendingDiffPercent: viewModel.lastMonthSpendingDiffPercent,
-                            previousMonthName: viewModel.selectedMonthYear.previousMonth.monthName
-                        )
-                    }
-
-                    buildSectionWithLabels(leading: "Month to date") { // TODO: Localize
-                        HomeMonthToDateSpendingChartSection(
-                            selectedMonth: viewModel.selectedMonthYear,
-                            currentMonthDailySpendingSums: viewModel.currentMonthDailySpendingSums,
-                            currency: viewModel.currency
-                        )
-                    }
-
-                    buildSectionWithLabels(leading: "By category") { // TODO: Localize
-                        HomeCategorySpendingSectionView(
-                            categorySpending: viewModel.categorySpending,
-                            currency: viewModel.currency,
-                            maxCategorySpending: viewModel.maxCategorySpending
-                        )
-                    }
-
+                ScrollView {
                     // TODO: temporary month-switching controls, replace with real UI
                     HStack {
                         Button("Previous month") { viewModel.selectPreviousMonth() }
                         Spacer()
                         Button("Next month") { viewModel.selectNextMonth() }
                     }
+                    VStack(spacing: 16) {
+                        buildSectionWithLabels(
+                            leading: viewModel.selectedMonthHeaderText,
+                            trailing: "52 TXNS" // TODO: Localize
+                        ) {
+                            HomeSummarySectionView(
+                                categorySpending: viewModel.categorySpending,
+                                totalCurrentMonthSpending: viewModel.totalCurrentMonthSpending,
+                                budget: viewModel.budget,
+                                currency: viewModel.currency,
+                                percentageOfBudgetSpent: viewModel.percentageOfBudgetSpent,
+                                lastMonthSpendingDiffPercent: viewModel.lastMonthSpendingDiffPercent,
+                                previousMonthName: viewModel.selectedMonthYear.previousMonth.monthName
+                            )
+                        }
+
+                        buildSectionWithLabels(leading: "Month to date") { // TODO: Localize
+                            HomeMonthToDateSpendingChartSection(
+                                selectedMonth: viewModel.selectedMonthYear,
+                                currentMonthDailySpendingSums: viewModel.currentMonthDailySpendingSums,
+                                currency: viewModel.currency
+                            )
+                        }
+
+                        buildSectionWithLabels(leading: "By category") { // TODO: Localize
+                            HomeCategorySpendingSectionView(
+                                categorySpending: viewModel.categorySpending,
+                                currency: viewModel.currency,
+                                maxCategorySpending: viewModel.maxCategorySpending
+                            )
+                        }
+                    }
+                    .padding(16)
                 }
-                .padding(16)
             case .error:
                 ContentUnavailableView("screen.home.error", systemImage: "exclamationmark.triangle")
             }
@@ -71,6 +72,9 @@ struct HomeView: View {
             }
             .textStyle(.eyebrow)
             content()
+                .if(viewModel.transactionsState.loadingState == .loading) { view in
+                    view.redacted(reason: .placeholder)
+                }
         }
     }
 }
