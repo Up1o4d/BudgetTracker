@@ -206,9 +206,9 @@ extension HomeViewModel {
             for await state in transactionProviderStream {
                 self?.transactionsState = state
                 // Reset data to empty when loading so that we can show consistent redacted views when switching between months
-                if state.loadingState == .loading {
-                    self?.transactionsState.data = []
-                }
+                // if state.loadingState == .loading {
+                //    self?.transactionsState.data = []
+                // }
             }
         }
 
