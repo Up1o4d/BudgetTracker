@@ -1,12 +1,16 @@
 import Foundation
 
-struct MonthYear: Equatable {
+struct MonthYear: Comparable {
     let month: Int
     let year: Int
 
     private init(month: Int, year: Int) {
         self.month = month
         self.year = year
+    }
+
+    static func < (lhs: MonthYear, rhs: MonthYear) -> Bool {
+        (lhs.year, lhs.month) < (rhs.year, rhs.month)
     }
 
     static func current(from now: Date = .now) -> MonthYear {

@@ -94,6 +94,7 @@ final class HomeViewModel {
 
     var currentMonthDailySpendingSums: [Decimal] {
         var dayCount: Int {
+            guard selectedMonthYear <= MonthYear.current() else { return 0 }
             guard selectedMonthYear == MonthYear.current() else { return selectedMonthYear.numberOfDaysInMonth }
             return Calendar.current.component(.day, from: .now)
         }

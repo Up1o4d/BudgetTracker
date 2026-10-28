@@ -2,6 +2,8 @@ import Charts
 import SwiftUI
 
 struct HomeMonthToDateSpendingChartSection: View {
+    @Environment(\.redactionReasons) var redactionReasons
+
     let selectedMonth: MonthYear
     let currentMonthDailySpendingSums: [Decimal]
     let currency: String
@@ -23,13 +25,19 @@ struct HomeMonthToDateSpendingChartSection: View {
         )
     }
 
+    private var spendingSums: [Decimal] {
+        guard redactionReasons.isEmpty else { return [] }
+        return currentMonthDailySpendingSums
+    }
+
     private var averageDailySpending: Decimal {
-        let totalSpending: Decimal = currentMonthDailySpendingSums.reduce(Decimal.zero, +)
-        return totalSpending / Decimal(currentMonthDailySpendingSums.count)
+        let totalSpending: Decimal = spendingSums.reduce(Decimal.zero, +)
+        guard totalSpending > 0 else { return 0 }
+        return totalSpending / Decimal(spendingSums.count)
     }
 
     private var todaySpending: Decimal {
-        currentMonthDailySpendingSums.last ?? 0.0
+        spendingSums.last ?? 0.0
     }
 
     var body: some View {
@@ -48,13 +56,13 @@ struct HomeMonthToDateSpendingChartSection: View {
                 )
             }
             Chart {
-                ForEach(currentMonthDailySpendingSums.enumerated(), id: \.offset) { inx, value in
+                ForEach(spendingSums.enumerated(), id: \.offset) { inx, value in
                     LineMark(x: .value("Day", inx + 1),
                              y: .value("Value", value))
                 }
                 .foregroundStyle(chartColor)
 
-                ForEach(currentMonthDailySpendingSums.enumerated(), id: \.offset) { inx, value in
+                ForEach(spendingSums.enumerated(), id: \.offset) { inx, value in
                     AreaMark(x: .value("Day", inx + 1),
                              y: .value("Value", value))
                 }
@@ -66,7 +74,7 @@ struct HomeMonthToDateSpendingChartSection: View {
         .cardBackground()
     }
 
-    func buildStatsLabel(label: String, value: String, alignment: HorizontalAlignment) -> some View {
+    private func buildStatsLabel(label: String, value: String, alignment: HorizontalAlignment) -> some View {
         VStack(alignment: alignment) {
             Text(label)
                 .textStyle(.metadata)
@@ -78,7 +86,7 @@ struct HomeMonthToDateSpendingChartSection: View {
     }
 }
 
-#Preview {
+#Preview("Loaded") {
     let dailySpendingSums: [Decimal] = [
         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
         12.99, 34.55, 99.12, 34.55, 289.20, 599.10, 9.11,
@@ -89,4 +97,26 @@ struct HomeMonthToDateSpendingChartSection: View {
         currentMonthDailySpendingSums: dailySpendingSums,
         currency: "USD"
     )
+}
+
+#Preview("Empty") {
+    HomeMonthToDateSpendingChartSection(
+        selectedMonth: MonthYear.current(),
+        currentMonthDailySpendingSums: [],
+        currency: "USD"
+    )
+}
+
+#Preview("Redacted") {
+    let dailySpendingSums: [Decimal] = [
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        12.99, 34.55, 99.12, 34.55, 289.20, 599.10, 9.11,
+        12.99, 34.55, 99.12, 34.55, 0.00, 499.10, 10.0,
+    ]
+    HomeMonthToDateSpendingChartSection(
+        selectedMonth: MonthYear.current(),
+        currentMonthDailySpendingSums: dailySpendingSums,
+        currency: "USD"
+    )
+    .redacted(reason: .placeholder)
 }
