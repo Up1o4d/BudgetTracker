@@ -1,11 +1,18 @@
 import SwiftUI
 
 struct PercentageBar: View {
+    @Environment(\.redactionReasons) var redactionReasons
+
     let percentage: Double
     var backgroundBarColor: Color = .borderSubtle
     let foregroundBarColor: Color
     var overflowColor: Color = .statusNegative
     var height: CGFloat = 2.0
+
+    private var redactedPercentage: Double {
+        guard redactionReasons.isEmpty else { return 0 }
+        return percentage
+    }
 
     var body: some View {
         Capsule()
@@ -14,13 +21,13 @@ struct PercentageBar: View {
             .overlay {
                 GeometryReader { geo in
                     var barWidths: (foregroundWidth: CGFloat, overflowWidth: CGFloat?) {
-                        if percentage < 1.0 {
-                            return (foregroundWidth: geo.size.width * percentage, overflowWidth: nil)
+                        if redactedPercentage < 1.0 {
+                            return (foregroundWidth: geo.size.width * redactedPercentage, overflowWidth: nil)
                         }
-                        let overflowShare: Double = percentage - 1.0
+                        let overflowShare: Double = redactedPercentage - 1.0
                         return (
-                            foregroundWidth: (1.0 / percentage) * geo.size.width,
-                            overflowWidth: (1.0 / percentage) * overflowShare * geo.size.width
+                            foregroundWidth: (1.0 / redactedPercentage) * geo.size.width,
+                            overflowWidth: (1.0 / redactedPercentage) * overflowShare * geo.size.width
                         )
                     }
 
@@ -40,10 +47,19 @@ struct PercentageBar: View {
     }
 }
 
-#Preview {
+#Preview("Normal") {
     VStack(spacing: 16) {
         PercentageBar(percentage: 0.4, foregroundBarColor: Color.accentLime)
         PercentageBar(percentage: 1.3, foregroundBarColor: Color.accentLime, height: 8.0)
     }
     .padding()
+}
+
+#Preview("Redacted") {
+    VStack(spacing: 16) {
+        PercentageBar(percentage: 0.4, foregroundBarColor: Color.accentLime)
+        PercentageBar(percentage: 1.3, foregroundBarColor: Color.accentLime, height: 8.0)
+    }
+    .padding()
+    .redacted(reason: .placeholder)
 }
