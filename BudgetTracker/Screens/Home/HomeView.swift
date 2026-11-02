@@ -73,7 +73,7 @@ struct HomeView: View {
             .textStyle(.eyebrow)
             content()
                 .if(viewModel.transactionsState.loadingState == .loading) { view in
-                    view.redacted(reason: .placeholder)
+                    view.redacted(reason: .placeholder).shimmering()
                 }
         }
     }

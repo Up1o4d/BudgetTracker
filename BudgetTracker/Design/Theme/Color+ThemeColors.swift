@@ -45,4 +45,8 @@ extension Color {
 
     static let chromeIsland = Color(light: Palette.black, dark: Palette.black)
     static let chromeHandle = Color(light: Palette.blackA30, dark: Palette.whiteA70)
+
+    // MARK: - Shimmer
+
+    static let shimmerHighlight = Color(light: Palette.whiteA55, dark: Palette.whiteA35)
 }
