@@ -1,6 +1,6 @@
 import Foundation
 
-struct MonthYear: Comparable {
+struct MonthYear: Comparable, Hashable {
     let month: Int
     let year: Int
 
@@ -26,6 +26,20 @@ struct MonthYear: Comparable {
 
     var nextMonth: MonthYear {
         month == 12 ? MonthYear(month: 1, year: year + 1) : MonthYear(month: month + 1, year: year)
+    }
+
+    func adding(months: Int) -> MonthYear {
+        let totalMonths = year * 12 + (month - 1) + months
+        let (newYear, monthIndex) = totalMonths.quotientAndRemainder(dividingBy: 12)
+        // quotientAndRemainder truncates toward zero, so normalise a negative remainder.
+        return monthIndex < 0
+            ? MonthYear(month: monthIndex + 13, year: newYear - 1)
+            : MonthYear(month: monthIndex + 1, year: newYear)
+    }
+
+    /// `count` consecutive months, oldest first, with `end` as the last element.
+    static func range(endingAt end: MonthYear, count: Int) -> [MonthYear] {
+        (0 ..< count).map { end.adding(months: $0 - count + 1) }
     }
 
     var monthDateRange: ClosedRange<Date> {

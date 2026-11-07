@@ -15,7 +15,22 @@ final class HomeViewModel {
     private(set) var transactionsState: DataState<Transaction> = .init()
     private(set) var categoriesState: DataState<Category> = .init()
 
-    private(set) var selectedMonthYear: MonthYear = .current()
+    /// Every month the Home pager can show, oldest first, ending at the current month.
+    /// A long finite range rather than a truly infinite one — the pager is lazy, so this is cheap.
+    let months: [MonthYear]
+
+    var selectedMonthYear: MonthYear = .current() {
+        didSet {
+            guard selectedMonthYear != oldValue else { return }
+            reloadForSelectedMonth()
+        }
+    }
+
+    /// Months whose transactions are present in `transactionsState`, as of the latest settled fetch.
+    private(set) var loadedMonths: ClosedRange<MonthYear>?
+    private var latestTransactionsRequestID = 0
+    /// Exposed so tests can await the reload triggered by changing `selectedMonthYear`.
+    private(set) var reloadTask: Task<Void, Never>?
 
     var viewLoadingState: LoadingState {
         guard !successfullyFinishedInitialLoad else { return .idle }
@@ -26,40 +41,58 @@ final class HomeViewModel {
         appSettings.currency
     }
 
-    private var categoriesById: [String: Category] {
-        Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
-    }
-
-    private var currentMonthTransactions: [Transaction] {
-        transactionsState.data.filter { selectedMonthYear.monthDateRange.contains($0.date) }
-    }
-
     var budget: Decimal {
         2300.0 // TODO: Add to user defaults / App settings
     }
 
-    var totalCurrentMonthSpending: Decimal {
-        return currentMonthTransactions.reduce(Decimal.zero) { acc, transaction in
-            acc + transaction.amount
-        }
+    private var categoriesById: [String: Category] {
+        Dictionary(uniqueKeysWithValues: categoriesState.data.map { ($0.id, $0) })
     }
 
-    var percentageOfBudgetSpent: Double {
-        Double(truncating: (totalCurrentMonthSpending / budget) as NSNumber)
+    func summary(for month: MonthYear) -> MonthSummary {
+        let monthTransactions = transactions(in: month)
+        let totalSpending = total(of: monthTransactions)
+        return MonthSummary(
+            month: month,
+            headerText: headerText(for: month),
+            totalSpending: totalSpending,
+            percentageOfBudgetSpent: Double(truncating: (totalSpending / budget) as NSNumber),
+            lastMonthSpendingDiffPercent: lastMonthSpendingDiffPercent(for: month, totalSpending: totalSpending),
+            categorySpending: categorySpending(for: monthTransactions, totalSpending: totalSpending),
+            dailySpendingSums: dailySpendingSums(for: month, transactions: monthTransactions),
+            isLoading: isLoading(month)
+        )
     }
 
-    var lastMonthSpendingDiffPercent: Double? {
-        let totalLastMonthSpending: Decimal = transactionsState.data.filter {
-            selectedMonthYear.previousMonth.monthDateRange.contains($0.date)
-        }.reduce(Decimal.zero) { acc, transaction in
-            acc + transaction.amount
+    private func transactions(in month: MonthYear) -> [Transaction] {
+        transactionsState.data.filter { month.monthDateRange.contains($0.date) }
+    }
+
+    private func total(of transactions: [Transaction]) -> Decimal {
+        transactions.reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    private func isLoading(_ month: MonthYear) -> Bool {
+        guard let loadedMonths else { return true }
+        return !(loadedMonths.contains(month) && loadedMonths.contains(month.previousMonth))
+    }
+
+    private func headerText(for month: MonthYear) -> String {
+        guard month == MonthYear.current() else {
+            return month.displayName
         }
+        return "\(month.displayName) · \(month.daysRemaining())d left"
+    }
+
+    private func lastMonthSpendingDiffPercent(for month: MonthYear, totalSpending: Decimal) -> Double? {
+        let totalLastMonthSpending = total(of: transactions(in: month.previousMonth))
         guard totalLastMonthSpending > 0 else { return nil }
-        return Double(truncating: (totalCurrentMonthSpending / totalLastMonthSpending) as NSNumber) - 1
+        return Double(truncating: (totalSpending / totalLastMonthSpending) as NSNumber) - 1
     }
 
-    var categorySpending: [CategorySpending] {
-        let totalsByCategoryId: [String: Decimal] = Dictionary(grouping: currentMonthTransactions, by: \.categoryId)
+    private func categorySpending(for transactions: [Transaction], totalSpending: Decimal) -> [CategorySpending] {
+        let categoriesById = categoriesById
+        let totalsByCategoryId: [String: Decimal] = Dictionary(grouping: transactions, by: \.categoryId)
             .mapValues { transactions in transactions.reduce(Decimal.zero) { $0 + $1.amount } }
 
         var cumulPercentage: Double = 0
@@ -74,7 +107,7 @@ final class HomeViewModel {
             }
             .map { categoryId, totalAmount in
                 let category: Category = categoriesById[categoryId] ?? Category.unknown
-                let percentage = totalCurrentMonthSpending.isZero ? 0 : Double(truncating: (totalAmount / totalCurrentMonthSpending) as NSNumber)
+                let percentage = totalSpending.isZero ? 0 : Double(truncating: (totalAmount / totalSpending) as NSNumber)
                 let prevRoundedPercentage: Double = cumulPercentage.rounded()
                 cumulPercentage += (percentage * 100)
                 let currRoundedPercentage: Double = cumulPercentage.rounded()
@@ -88,38 +121,21 @@ final class HomeViewModel {
             }
     }
 
-    var maxCategorySpending: CategorySpending? {
-        categorySpending.first
-    }
-
-    var currentMonthDailySpendingSums: [Decimal] {
+    private func dailySpendingSums(for month: MonthYear, transactions: [Transaction]) -> [Decimal] {
         var dayCount: Int {
-            guard selectedMonthYear <= MonthYear.current() else { return 0 }
-            guard selectedMonthYear == MonthYear.current() else { return selectedMonthYear.numberOfDaysInMonth }
+            guard month <= MonthYear.current() else { return 0 }
+            guard month == MonthYear.current() else { return month.numberOfDaysInMonth }
             return Calendar.current.component(.day, from: .now)
         }
 
         var sums = Array(repeating: Decimal.zero, count: dayCount)
 
-        for transaction in currentMonthTransactions {
+        for transaction in transactions {
             let day = Calendar.current.component(.day, from: transaction.date)
             guard day <= dayCount else { continue }
             sums[day - 1] += transaction.amount
         }
         return sums
-    }
-
-    var selectedMonthHeaderText: String {
-        guard selectedMonthYear == MonthYear.current() else {
-            return selectedMonthYear.displayName
-        }
-        return "\(selectedMonthYear.displayName) · \(selectedMonthYear.daysRemaining())d left"
-    }
-
-    var previousMonthTotalSpending: Decimal {
-        transactionsState.data
-            .filter { selectedMonthYear.previousMonth.monthDateRange.contains($0.date) }
-            .reduce(Decimal.zero) { $0 + $1.amount }
     }
 
     init(
@@ -130,6 +146,8 @@ final class HomeViewModel {
         self.transactionsProvider = transactionsProvider
         self.categoriesProvider = categoriesProvider
         self.appSettings = appSettings
+        // ~100 years back, up to and including the current month.
+        self.months = MonthYear.range(endingAt: .current(), count: 1201)
     }
 
     /// Returns the fetch's settled result so `loadData` can decide whether the initial load
@@ -148,10 +166,22 @@ final class HomeViewModel {
             streamUUID = uuid
         }
 
-        return await transactionsProvider.fetchTransactions(
+        // Fetch the selected month's neighbours too, so pages visible mid-swipe already have data.
+        // Each page also needs its own previous month for the month-over-month diff.
+        let window = selectedMonthYear.adding(months: -2) ... selectedMonthYear.adding(months: 1)
+        latestTransactionsRequestID += 1
+        let requestID = latestTransactionsRequestID
+
+        let result = await transactionsProvider.fetchTransactions(
             uuid: streamUUID,
-            filter: TransactionFilter(dateRange: selectedMonthYear.previousMonth.monthDateRange.lowerBound ... selectedMonthYear.monthDateRange.upperBound)
+            filter: TransactionFilter(dateRange: window.lowerBound.monthDateRange.lowerBound ... window.upperBound.monthDateRange.upperBound)
         )
+
+        // A newer request supersedes this one; only the latest decides what's loaded.
+        if case .success = result, requestID == latestTransactionsRequestID {
+            loadedMonths = window
+        }
+        return result
     }
 
     @discardableResult
@@ -183,17 +213,9 @@ final class HomeViewModel {
         }
     }
 
-    /// Returned so tests can await completion; production callers discard it.
-    @discardableResult
-    func selectNextMonth() -> Task<Void, Never> {
-        selectedMonthYear = selectedMonthYear.nextMonth
-        return Task { await self.loadTransactions() }
-    }
-
-    @discardableResult
-    func selectPreviousMonth() -> Task<Void, Never> {
-        selectedMonthYear = selectedMonthYear.previousMonth
-        return Task { await self.loadTransactions() }
+    private func reloadForSelectedMonth() {
+        reloadTask?.cancel()
+        reloadTask = Task { await self.loadTransactions() }
     }
 }
 

@@ -9,47 +9,7 @@ struct HomeView: View {
             case .loading:
                 ProgressView()
             case .idle:
-                ScrollView {
-                    // TODO: temporary month-switching controls, replace with real UI
-                    HStack {
-                        Button("Previous month") { viewModel.selectPreviousMonth() }
-                        Spacer()
-                        Button("Next month") { viewModel.selectNextMonth() }
-                    }
-                    VStack(spacing: 16) {
-                        buildSectionWithLabels(
-                            leading: viewModel.selectedMonthHeaderText,
-                            trailing: "52 TXNS" // TODO: Localize
-                        ) {
-                            HomeSummarySectionView(
-                                categorySpending: viewModel.categorySpending,
-                                totalCurrentMonthSpending: viewModel.totalCurrentMonthSpending,
-                                budget: viewModel.budget,
-                                currency: viewModel.currency,
-                                percentageOfBudgetSpent: viewModel.percentageOfBudgetSpent,
-                                lastMonthSpendingDiffPercent: viewModel.lastMonthSpendingDiffPercent,
-                                previousMonthName: viewModel.selectedMonthYear.previousMonth.monthName
-                            )
-                        }
-
-                        buildSectionWithLabels(leading: "Month to date") { // TODO: Localize
-                            HomeMonthToDateSpendingChartSection(
-                                selectedMonth: viewModel.selectedMonthYear,
-                                currentMonthDailySpendingSums: viewModel.currentMonthDailySpendingSums,
-                                currency: viewModel.currency
-                            )
-                        }
-
-                        buildSectionWithLabels(leading: "By category") { // TODO: Localize
-                            HomeCategorySpendingSectionView(
-                                categorySpending: viewModel.categorySpending,
-                                currency: viewModel.currency,
-                                maxCategorySpending: viewModel.maxCategorySpending
-                            )
-                        }
-                    }
-                    .padding(16)
-                }
+                monthPager
             case .error:
                 ContentUnavailableView("screen.home.error", systemImage: "exclamationmark.triangle")
             }
@@ -59,23 +19,35 @@ struct HomeView: View {
         .task { await viewModel.loadData() }
     }
 
-    func buildSectionWithLabels<Content: View>(leading: String, trailing: String? = nil, @ViewBuilder content: () -> Content) -> some View {
-        VStack {
-            HStack {
-                Text(leading)
-                    .foregroundStyle(Color.textTertiary)
-                Spacer()
-                if let trailing = trailing {
-                    Text(trailing)
-                        .foregroundStyle(Color.textSecondary)
+    private var monthPager: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEach(viewModel.months, id: \.self) { month in
+                    HomeMonthPageView(
+                        summary: viewModel.summary(for: month),
+                        budget: viewModel.budget,
+                        currency: viewModel.currency
+                    )
+                    .containerRelativeFrame(.horizontal)
                 }
             }
-            .textStyle(.eyebrow)
-            content()
-                .if(viewModel.transactionsState.loadingState == .loading) { view in
-                    view.redacted(reason: .placeholder).shimmering()
-                }
+            .scrollTargetLayout()
         }
+        .scrollTargetBehavior(.paging)
+        .defaultScrollAnchor(.trailing) // Current month is the last page
+        .scrollPosition(id: selectedMonthBinding)
+        .scrollIndicators(.hidden)
+    }
+
+    /// `scrollPosition(id:)` needs an optional binding; it only reports nil mid-layout, which we ignore.
+    private var selectedMonthBinding: Binding<MonthYear?> {
+        Binding(
+            get: { viewModel.selectedMonthYear },
+            set: { newValue in
+                guard let newValue else { return }
+                viewModel.selectedMonthYear = newValue
+            }
+        )
     }
 }
 
