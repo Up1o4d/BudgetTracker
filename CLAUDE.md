@@ -12,13 +12,13 @@ This is an Xcode project — use `xcodebuild` from the repo root:
 
 ```bash
 # Build
-xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination 'platform=iOS Simulator,name=iPhone 16' build
+xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination 'platform=iOS Simulator,name=iPhone 17' build
 
 # Run all tests
-xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination 'platform=iOS Simulator,name=iPhone 16' test
+xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination 'platform=iOS Simulator,name=iPhone 17' test
 
 # Run a single test (Swift Testing)
-xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination 'platform=iOS Simulator,name=iPhone 16' test -only-testing BudgetTrackerTests/BudgetTrackerTests/testName
+xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination 'platform=iOS Simulator,name=iPhone 17' test -only-testing BudgetTrackerTests/BudgetTrackerTests/testName
 ```
 
 ## Architecture

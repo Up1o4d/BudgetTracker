@@ -176,7 +176,7 @@ struct TransactionsProviderContractTests {
 private nonisolated extension AsyncStream<DataState<Transaction>>.Iterator {
     /// Skips any interim `.loading` emissions and returns the next settled (`.idle`/`.error`) state.
     mutating func nextSettled() async -> DataState<Transaction>? {
-        while let state = await next() {
+        while let state = await next(isolation: #isolation) {
             if state.loadingState != .loading { return state }
         }
         return nil

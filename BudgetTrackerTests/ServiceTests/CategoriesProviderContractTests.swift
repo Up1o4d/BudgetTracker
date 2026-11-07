@@ -147,7 +147,7 @@ struct CategoriesProviderContractTests {
 private nonisolated extension AsyncStream<DataState<BudgetTracker.Category>>.Iterator {
     /// Skips any interim `.loading` emissions and returns the next settled (`.idle`/`.error`) state.
     mutating func nextSettled() async -> DataState<BudgetTracker.Category>? {
-        while let state = await next() {
+        while let state = await next(isolation: #isolation) {
             if state.loadingState != .loading { return state }
         }
         return nil

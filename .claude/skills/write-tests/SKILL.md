@@ -83,6 +83,6 @@ Run the new tests to confirm they pass:
 
 ```bash
 xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker \
-  -destination 'platform=iOS Simulator,name=iPhone 16' test \
+  -destination 'platform=iOS Simulator,name=iPhone 17' test \
   -only-testing BudgetTrackerTests/<SuiteName>
 ```

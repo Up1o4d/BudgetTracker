@@ -22,8 +22,11 @@ final class MockCategoriesProvider: CategoriesProviderProtocol, @unchecked Senda
         let (stream, continuation) = AsyncStream.makeStream(of: DataState<BudgetTracker.Category>.self)
         let id = UUID()
 
+        // `onTermination` is `@Sendable`, so hop back to the main actor that owns `streamRegistry`.
         continuation.onTermination = { [weak self] _ in
-            self?.streamRegistry.removeValue(forKey: id)
+            Task { @MainActor in
+                self?.streamRegistry.removeValue(forKey: id)
+            }
         }
 
         // Silent channel: nothing is emitted until the first `fetchCategories(uuid:)` pushes

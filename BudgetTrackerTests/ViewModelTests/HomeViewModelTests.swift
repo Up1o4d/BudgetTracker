@@ -28,6 +28,10 @@ struct HomeViewModelTests {
         month.adding(months: -2).monthDateRange.lowerBound ... month.adding(months: 1).monthDateRange.upperBound
     }
 
+    private func dateInside(_ month: MonthYear) -> Date {
+        month.monthDateRange.lowerBound.addingTimeInterval(60 * 60)
+    }
+
     // MARK: - Initial state
 
     @Test
@@ -65,9 +69,9 @@ struct HomeViewModelTests {
     func summary_computesTotalAndDiffAgainstPreviousMonth() async {
         let current = MonthYear.current()
         let transactions = [
-            Transaction(id: "1", amount: 100, vendor: "A", categoryId: "groceries", date: current.monthDateRange.lowerBound),
-            Transaction(id: "2", amount: 50, vendor: "B", categoryId: "dining", date: current.monthDateRange.lowerBound),
-            Transaction(id: "3", amount: 100, vendor: "C", categoryId: "groceries", date: current.previousMonth.monthDateRange.lowerBound),
+            Transaction(id: "1", amount: 100, vendor: "A", categoryId: "groceries", date: dateInside(current)),
+            Transaction(id: "2", amount: 50, vendor: "B", categoryId: "dining", date: dateInside(current)),
+            Transaction(id: "3", amount: 100, vendor: "C", categoryId: "groceries", date: dateInside(current.previousMonth)),
         ]
         transactionsProvider.stubbedTransactions = transactions
         await sut.loadData()
