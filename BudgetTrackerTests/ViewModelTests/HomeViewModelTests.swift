@@ -17,13 +17,6 @@ struct HomeViewModelTests {
         )
     }
 
-    private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(2)) async {
-        let deadline = ContinuousClock.now.advanced(by: timeout)
-        while !condition(), ContinuousClock.now < deadline {
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-    }
-
     private func expectedFetchRange(around month: MonthYear) -> ClosedRange<Date> {
         month.adding(months: -2).monthDateRange.lowerBound ... month.adding(months: 1).monthDateRange.upperBound
     }
@@ -79,6 +72,7 @@ struct HomeViewModelTests {
 
         let summary = sut.summary(for: current)
         #expect(summary.totalSpending == 150)
+        #expect(summary.transactionCount == 2)
         #expect(summary.lastMonthSpendingDiffPercent == 0.5)
         #expect(summary.maxCategorySpending?.totalAmount == 100)
         #expect(summary.isLoading == false)

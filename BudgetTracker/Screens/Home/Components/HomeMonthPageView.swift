@@ -11,7 +11,7 @@ struct HomeMonthPageView: View {
             VStack(spacing: 16) {
                 buildSectionWithLabels(
                     leading: summary.headerText,
-                    trailing: "52 TXNS" // TODO: Localize
+                    trailing: "\(summary.transactionCount) TXNS" // TODO: Localize (with plural variants)
                 ) {
                     HomeSummarySectionView(
                         categorySpending: summary.categorySpending,
@@ -70,6 +70,7 @@ struct HomeMonthPageView: View {
             month: .current(),
             headerText: MonthYear.current().displayName,
             totalSpending: 1050,
+            transactionCount: 52,
             percentageOfBudgetSpent: 0.46,
             lastMonthSpendingDiffPercent: -0.12,
             categorySpending: [

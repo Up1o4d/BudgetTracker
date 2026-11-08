@@ -72,9 +72,17 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
 
     private var transactionsDict: [String: Transaction]
     private let registry = DataStreamRegistry<Transaction>()
+    private let simulatedLatency: @Sendable () async -> Void
 
-    init(transactions: [Transaction] = InMemoryTransactionsProvider.seed) {
+    /// `simulatedLatency` runs before every read and write. Defaults to a random 0.5–1.5s delay so
+    /// development builds and previews exercise loading states; tests inject their own to control
+    /// ordering deterministically.
+    init(
+        transactions: [Transaction] = InMemoryTransactionsProvider.seed,
+        simulatedLatency: @escaping @Sendable () async -> Void = { try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5))) }
+    ) {
         transactionsDict = Dictionary(uniqueKeysWithValues: transactions.map { ($0.id, $0) })
+        self.simulatedLatency = simulatedLatency
     }
 
     func transactionsStream() async -> (AsyncStream<DataState<Transaction>>, UUID) {
@@ -94,7 +102,7 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
     }
 
     func addTransactions(_ newTransactions: [Transaction]) async throws {
-        try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
+        await simulatedLatency()
         for transaction in newTransactions {
             transactionsDict[transaction.id] = transaction
         }
@@ -105,11 +113,11 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
         await registry.refetchAll()
     }
 
-    /// Simulates a slow network read: the `Task.sleep` is the suspension point that makes the
+    /// Simulates a slow network read: the `simulatedLatency` await is the suspension point that makes the
     /// per-uuid generation supersede in `DataStreamRegistry.fetch` observable — a second fetch can
     /// start (and bump the generation) while an earlier one is parked here.
     private func fetchFiltered(_ filter: TransactionFilter) async throws -> [Transaction] {
-        try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
+        await simulatedLatency()
         return Array(transactionsDict.values).filter { filter.matches($0) }
     }
 }

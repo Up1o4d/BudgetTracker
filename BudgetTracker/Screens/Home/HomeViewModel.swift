@@ -56,6 +56,7 @@ final class HomeViewModel {
             month: month,
             headerText: headerText(for: month),
             totalSpending: totalSpending,
+            transactionCount: monthTransactions.count,
             percentageOfBudgetSpent: Double(truncating: (totalSpending / budget) as NSNumber),
             lastMonthSpendingDiffPercent: lastMonthSpendingDiffPercent(for: month, totalSpending: totalSpending),
             categorySpending: categorySpending(for: monthTransactions, totalSpending: totalSpending),

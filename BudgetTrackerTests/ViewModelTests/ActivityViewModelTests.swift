@@ -13,18 +13,6 @@ struct ActivityViewModelTests {
         sut = ActivityViewModel(transactionsProvider: transactionsProvider, categoriesProvider: categoriesProvider, appSettings: InMemoryAppSettings())
     }
 
-    /// The ViewModel applies transaction stream emissions on a detached observer `Task`, so a
-    /// settled state pushed by `fetchTransactions`/`addTransactions` lands on `transactionsState`
-    /// one hop after the awaited call returns. Polls until `condition` holds rather than sleeping a
-    /// fixed interval — the latter flakes under Swift Testing's parallel execution, where the
-    /// observer Task can be scheduled well after any fixed delay.
-    private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(2)) async {
-        let deadline = ContinuousClock.now.advanced(by: timeout)
-        while !condition(), ContinuousClock.now < deadline {
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-    }
-
     // MARK: - Initial state
 
     @Test

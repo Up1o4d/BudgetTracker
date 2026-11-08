@@ -29,7 +29,7 @@ struct TransactionsProviderContractTests {
             )
             return SwiftDataTransactionsProvider(modelContainer: container)
         case .inMemory:
-            return InMemoryTransactionsProvider()
+            return InMemoryTransactionsProvider(simulatedLatency: {})
         }
     }
 
@@ -109,31 +109,32 @@ struct TransactionsProviderContractTests {
 
     @Test
     func inMemory_fetchTransactions_staleInFlightFetchIsSupersededPerUuid() async throws {
-        let provider = InMemoryTransactionsProvider()
         let vendorA = uniqueVendor("VendorA")
         let vendorB = uniqueVendor("VendorB")
         let txA = Transaction(id: UUID().uuidString, amount: 10, vendor: vendorA, categoryId: Category.groceries.id, date: .now)
         let txB = Transaction(id: UUID().uuidString, amount: 20, vendor: vendorB, categoryId: Category.dining.id, date: .now)
-        try await provider.addTransactions([txA, txB])
+        let gate = FirstCallLatencyGate()
+        let provider = InMemoryTransactionsProvider(transactions: [txA, txB], simulatedLatency: { await gate.latency() })
 
         let (stream, uuid) = await provider.transactionsStream()
-        let box = StreamIteratorBox(stream)
+        let recorder = StreamRecorder(stream)
 
-        // Start the vendorA fetch, let it enter the actor and park in its simulated-latency sleep,
-        // then start the vendorB fetch on the SAME uuid. vendorB claims the newer generation, so
-        // only vendorB may reach the stream — the now-stale vendorA fetch must not yield after it.
+        // Park the vendorA fetch in its simulated latency, then start the vendorB fetch on the SAME
+        // uuid. vendorB claims the newer generation, so only vendorB may reach the stream — the
+        // now-stale vendorA fetch must not yield after it.
         let staleFetch = Task {
             await provider.fetchTransactions(uuid: uuid, filter: TransactionFilter(vendorSubstring: vendorA))
         }
-        try await Task.sleep(for: .milliseconds(100))
+        await gate.started.wait()
         _ = await provider.fetchTransactions(uuid: uuid, filter: TransactionFilter(vendorSubstring: vendorB))
+        await gate.release.signal()
         _ = await staleFetch.value
 
-        let settled = try #require(await box.nextSettled())
+        let settled = try #require(await recorder.nextSettled())
         #expect(settled.data == [txB])
 
         // Nothing else arrives — the superseded vendorA fetch never yields.
-        let extra = await box.nextOrTimeout()
+        let extra = await recorder.nextOrTimeout()
         #expect(extra == nil)
     }
 
@@ -180,48 +181,5 @@ private nonisolated extension AsyncStream<DataState<Transaction>>.Iterator {
             if state.loadingState != .loading { return state }
         }
         return nil
-    }
-}
-
-/// Drives an `AsyncStream` iterator from a reference type so a "did nothing else arrive"
-/// check can race the next value against a timeout without fighting `Iterator`'s
-/// value-semantics/mutating-method requirements.
-private nonisolated final class StreamIteratorBox: @unchecked Sendable {
-    private var iterator: AsyncStream<DataState<Transaction>>.Iterator
-
-    init(_ stream: AsyncStream<DataState<Transaction>>) {
-        iterator = stream.makeAsyncIterator()
-    }
-
-    func next() async -> DataState<Transaction>? {
-        await iterator.next()
-    }
-
-    func nextSettled() async -> DataState<Transaction>? {
-        while let state = await next() {
-            if state.loadingState != .loading { return state }
-        }
-        return nil
-    }
-
-    func nextOrTimeout(_ timeout: Duration = .milliseconds(200)) async -> DataState<Transaction>?? {
-        await withTaskGroup(of: Outcome.self) { group in
-            group.addTask { .value(await self.next()) }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return .timeout
-            }
-            let outcome = await group.next()!
-            group.cancelAll()
-            switch outcome {
-            case .value(let value): return .some(value)
-            case .timeout: return .none
-            }
-        }
-    }
-
-    private enum Outcome {
-        case value(DataState<Transaction>?)
-        case timeout
     }
 }

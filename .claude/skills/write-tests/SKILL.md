@@ -48,6 +48,23 @@ No other comments.
 - `try #require(...)` to unwrap optionals — fails the test immediately if nil
 - Prefer value equality over separate count + field checks: `#expect(result == [transaction])`
 
+## Async tests
+
+Tests, ViewModel stream observers and snapshot rendering all share the main actor in one process (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`). Under load — parallel suites, an attached debugger — a task can be scheduled seconds late, so any wall-clock assumption flakes.
+
+- Never use `Task.sleep` to wait for or order async work
+- Wait for state with the shared `waitUntil { ... }` (`BudgetTrackerTests/Helpers/WaitUntil.swift`) — don't write a private copy or pass a short `timeout`; it records its own failure on timeout
+- Order concurrent work with `AsyncEvent` (`Helpers/AsyncEvent.swift`), not sleeps
+- In-memory providers: construct with `simulatedLatency: {}`; to hold a fetch in flight, pass `{ await gate.latency() }` with a `FirstCallLatencyGate` and `await gate.started.wait()` before starting the competing call
+- Streams: wrap in `StreamRecorder` (`Helpers/StreamRecorder.swift`) — `nextSettled()` for expected values, `nextOrTimeout()` for "nothing else arrives" (best-effort: a late emission can slip past the window)
+- Don't sleep after code that returns synchronously (e.g. a `guard` before a `Task`) — assert directly
+
+```swift
+await sut.loadTransactions()
+await waitUntil { sut.transactionsState.data == transactions }
+#expect(sut.transactionsState.data == transactions)
+```
+
 ## Imports
 
 ```swift
@@ -66,9 +83,9 @@ import SnapshotTesting
 @Suite(.snapshots(record: .missing))
 struct MyViewSnapshotTests {
     @Test
-    func component_light() { ... assertSnapshot(..., traits: .init(userInterfaceStyle: .light)) }
+    func component_light() { ... assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light))) }
     @Test
-    func component_dark() { ... assertSnapshot(..., traits: .init(userInterfaceStyle: .dark)) }
+    func component_dark() { ... assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark))) }
 }
 ```
 

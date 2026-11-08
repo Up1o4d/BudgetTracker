@@ -3,9 +3,17 @@ import Foundation
 actor InMemoryCategoriesProvider: CategoriesProviderProtocol {
     private var categoriesDict: [String: Category]
     private let registry = DataStreamRegistry<Category>()
+    private let simulatedLatency: @Sendable () async -> Void
 
-    init(categories: [Category] = Category.all) {
+    /// `simulatedLatency` runs before every read and write. Defaults to a random 0.5–1.5s delay so
+    /// development builds and previews exercise loading states; tests inject their own to control
+    /// ordering deterministically.
+    init(
+        categories: [Category] = Category.all,
+        simulatedLatency: @escaping @Sendable () async -> Void = { try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5))) }
+    ) {
         categoriesDict = Dictionary(uniqueKeysWithValues: categories.map { ($0.id, $0) })
+        self.simulatedLatency = simulatedLatency
     }
 
     func categoriesStream() async -> (AsyncStream<DataState<Category>>, UUID) {
@@ -25,7 +33,7 @@ actor InMemoryCategoriesProvider: CategoriesProviderProtocol {
     }
 
     func addCategories(_ categories: [Category]) async throws {
-        try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
+        await simulatedLatency()
         for category in categories {
             categoriesDict[category.id] = category
         }
@@ -37,7 +45,7 @@ actor InMemoryCategoriesProvider: CategoriesProviderProtocol {
     }
 
     private func fetchAll() async throws -> [Category] {
-        try? await Task.sleep(for: .seconds(Double.random(in: 0.5 ... 1.5)))
+        await simulatedLatency()
         return Array(categoriesDict.values)
     }
 }

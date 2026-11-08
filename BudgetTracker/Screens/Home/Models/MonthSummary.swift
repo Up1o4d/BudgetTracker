@@ -5,6 +5,7 @@ struct MonthSummary: Equatable {
     let month: MonthYear
     let headerText: String
     let totalSpending: Decimal
+    let transactionCount: Int
     let percentageOfBudgetSpent: Double
     let lastMonthSpendingDiffPercent: Double?
     let categorySpending: [CategorySpending]

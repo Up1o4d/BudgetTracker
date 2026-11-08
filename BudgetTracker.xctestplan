@@ -9,7 +9,15 @@
     }
   ],
   "defaultOptions" : {
+    "environmentVariableEntries" : [
+      {
+        "key" : "TZ",
+        "value" : "UTC"
+      }
+    ],
+    "language" : "en",
     "performanceAntipatternCheckerEnabled" : true,
+    "region" : "US",
     "targetForVariableExpansion" : {
       "containerPath" : "container:BudgetTracker.xcodeproj",
       "identifier" : "CEDAA82F2FA32BAF004B56E8",

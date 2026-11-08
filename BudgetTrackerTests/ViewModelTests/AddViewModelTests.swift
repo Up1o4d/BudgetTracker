@@ -22,15 +22,6 @@ struct AddViewModelTests {
         )
     }
 
-    /// `save()` writes on a detached `Task`, so provider state lands one hop after the call
-    /// returns. Polls until `condition` holds rather than sleeping a fixed interval.
-    private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(2)) async {
-        let deadline = ContinuousClock.now.advanced(by: timeout)
-        while !condition(), ContinuousClock.now < deadline {
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-    }
-
     // MARK: - Initial state
 
     @Test
@@ -181,27 +172,25 @@ struct AddViewModelTests {
     // MARK: - save()
 
     @Test
-    func save_doesNothingWhenFormIsInvalid() async {
+    func save_doesNothingWhenFormIsInvalid() {
         let sut = makeSUT()
         sut.vendor = "Coffee Shop"
         // amount and selectedCategory left unset.
 
         sut.save()
-        try? await Task.sleep(for: .milliseconds(50))
 
         #expect(transactionsProvider.stubbedTransactions.isEmpty)
         #expect(sut.isSaving == false)
     }
 
     @Test
-    func save_doesNothingWhenCategoryMissing() async {
+    func save_doesNothingWhenCategoryMissing() {
         let sut = makeSUT()
         sut.vendor = "Coffee Shop"
         sut.amount = 5
         // selectedCategory left unset.
 
         sut.save()
-        try? await Task.sleep(for: .milliseconds(50))
 
         #expect(transactionsProvider.stubbedTransactions.isEmpty)
     }

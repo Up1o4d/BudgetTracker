@@ -27,7 +27,7 @@ struct CategoriesProviderContractTests {
             )
             return SwiftDataCategoriesProvider(modelContainer: container)
         case .inMemory:
-            return InMemoryCategoriesProvider(categories: [])
+            return InMemoryCategoriesProvider(categories: [], simulatedLatency: {})
         }
     }
 
@@ -119,10 +119,11 @@ struct CategoriesProviderContractTests {
 
     @Test
     func inMemory_fetchCategories_staleInFlightFetchIsSupersededPerUuid() async throws {
-        let provider = InMemoryCategoriesProvider(categories: [.groceries])
+        let gate = FirstCallLatencyGate()
+        let provider = InMemoryCategoriesProvider(categories: [.groceries], simulatedLatency: { await gate.latency() })
 
         let (stream, uuid) = await provider.categoriesStream()
-        let box = StreamIteratorBox(stream)
+        let recorder = StreamRecorder(stream)
 
         // Categories has no filter to make the stale and fresh fetches content-distinguishable
         // (unlike transactions' vendorA/vendorB), so this proves the weaker but still meaningful
@@ -131,15 +132,16 @@ struct CategoriesProviderContractTests {
         let staleFetch = Task {
             await provider.fetchCategories(uuid: uuid)
         }
-        try await Task.sleep(for: .milliseconds(100))
+        await gate.started.wait() // the stale fetch is now parked in its simulated latency
         _ = await provider.fetchCategories(uuid: uuid)
+        await gate.release.signal()
         _ = await staleFetch.value
 
-        let settled = try #require(await box.nextSettled())
+        let settled = try #require(await recorder.nextSettled())
         #expect(Set(settled.data.map(\.id)) == Set([Category.groceries.id]))
 
         // Nothing else arrives — the superseded fetch never yields.
-        let extra = await box.nextOrTimeout()
+        let extra = await recorder.nextOrTimeout()
         #expect(extra == nil)
     }
 }
@@ -151,48 +153,5 @@ private nonisolated extension AsyncStream<DataState<BudgetTracker.Category>>.Ite
             if state.loadingState != .loading { return state }
         }
         return nil
-    }
-}
-
-/// Drives an `AsyncStream` iterator from a reference type so a "did nothing else arrive"
-/// check can race the next value against a timeout without fighting `Iterator`'s
-/// value-semantics/mutating-method requirements.
-private nonisolated final class StreamIteratorBox: @unchecked Sendable {
-    private var iterator: AsyncStream<DataState<BudgetTracker.Category>>.Iterator
-
-    init(_ stream: AsyncStream<DataState<BudgetTracker.Category>>) {
-        iterator = stream.makeAsyncIterator()
-    }
-
-    func next() async -> DataState<BudgetTracker.Category>? {
-        await iterator.next()
-    }
-
-    func nextSettled() async -> DataState<BudgetTracker.Category>? {
-        while let state = await next() {
-            if state.loadingState != .loading { return state }
-        }
-        return nil
-    }
-
-    func nextOrTimeout(_ timeout: Duration = .milliseconds(200)) async -> DataState<BudgetTracker.Category>?? {
-        await withTaskGroup(of: Outcome.self) { group in
-            group.addTask { .value(await self.next()) }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return .timeout
-            }
-            let outcome = await group.next()!
-            group.cancelAll()
-            switch outcome {
-            case .value(let value): return .some(value)
-            case .timeout: return .none
-            }
-        }
-    }
-
-    private enum Outcome {
-        case value(DataState<BudgetTracker.Category>?)
-        case timeout
     }
 }

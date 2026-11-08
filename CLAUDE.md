@@ -23,35 +23,42 @@ xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination '
 
 ## Architecture
 
-MVVM app with four tabs (Home, Insights, Activity, Import). See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
+MVVM app with two tabs (Home, Activity) plus an Add-transaction sheet opened from the tab bar. Insights and Import tabs are planned but not implemented. See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
 
 ```
-View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol
-                                        ↓                    ↓
-                               SwiftDataTransactionsProvider  InMemoryTransactionsProvider
+View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol / CategoriesProviderProtocol / AppSettingsProtocol
+                                        ↓                                  ↓
+                               SwiftData providers + AppSettings    InMemory providers + InMemoryAppSettings
+                               (production)                         (development, previews)
 ```
 
-**Dependency injection** — `AppDependencies` is constructed in `BudgetTrackerApp` and passed to `RootView`, which constructs ViewModels at route boundaries. ViewModels receive protocol-typed dependencies via `init`; no singletons, no `@Environment` DI.
+**Dependency injection** — `AppDependencies` bundles the providers and settings, with `.swiftData()` (production) and `.inMemory()` (development) factories. It is constructed in `BudgetTrackerApp` and passed to `RootView` via `RootViewModel`; `RootView` constructs ViewModels at route boundaries. ViewModels receive protocol-typed dependencies via `init`; no singletons, no `@Environment` DI.
 
-**Navigation** — `AppRouter` owns a `NavigationPath` per tab. `RootView` binds each `NavigationStack` to its tab's path. ViewModels that trigger navigation receive the router via `init`. Add `navigationDestination` modifiers in `RootView` as new routes are added.
+**Storage** — SwiftData is the production storage. `BudgetTrackerApp` currently uses `.inMemory()` during development; the `.swiftData()` call is commented out alongside it.
 
-**Provider protocol** — `TransactionsProviderProtocol` is the seam between the app and storage. `InMemoryTransactionsProvider` is the test/preview double; `SwiftDataTransactionsProvider` will be the production conformance once wired in (currently `BudgetTrackerApp` still uses `InMemoryTransactionsProvider`).
+**Navigation** — `AppRouter` owns the selected tab, a `NavigationPath` per tab, and the presented sheet (`AppSheet`). `RootView` binds each `NavigationStack` to its tab's path and presents sheets. ViewModels that trigger navigation receive the router via `init`. Add `navigationDestination` modifiers in `RootView` as new routes are added.
 
-**Category** — a `struct` managed via `CategoriesProviderProtocol`. `Transaction` references a category by `categoryId: String`; ViewModels join them at display time.
+**Providers** — `TransactionsProviderProtocol` and `CategoriesProviderProtocol` are the seam between the app and storage. Providers are actors that stream `DataState<T>` via `AsyncStream`: call `transactionsStream()` to get `(stream, uuid)`, observe the stream, and pass the same `uuid` to `fetchTransactions(uuid:filter:)`. Writes re-emit to every live stream. Shared stream logic lives in `DataStreamRegistry`.
 
-**`LoadingState`** — enum used in ViewModels to drive loading/error/idle UI states.
+**Category** — a `struct` (id, name, symbolName, colorHex) managed via `CategoriesProviderProtocol`. Defaults are in `Category.all` and seeded on first launch by `RootViewModel.runAppSetup()`. `Transaction` references a category by `categoryId: String`; ViewModels join them at display time, falling back to `Category.unknown`.
+
+**`DataState` / `LoadingState`** — `DataState` (`loadingState`, `data`, `error`) is what provider streams emit; `.loading` and `.error` emissions carry the last-known data. `LoadingState` (`loading`/`idle`/`error`) drives UI states; `LoadingState.merged(_:)` combines several.
 
 ## Theming
 
 Tokens live in `Design/Theme/`, applied via extensions in `Design/Extensions/`.
 
 - **Colors** — two layers: raw palette (`Color+Palette.swift`) → semantic constants (`Color+ThemeColors.swift`, e.g. `Color.bgCanvas`, `Color.textPrimary`). Always use semantic names in views. Light/dark variants are encoded at the semantic layer via `Color(light:dark:)`.
-- **Typography** — `AppTextStyle` bundles font + spacing into named tokens (`bodyMD`, `displayXL`, etc.). Apply with `.textStyle(_:)`.
+- **Category colors** — come from `Category.colorHex`, rendered with `Color(hex:)`. This is the only sanctioned hex in views.
+- **Typography** — `AppTextStyle` bundles font (the bundled Oxanium typeface) + spacing into named tokens (`bodyMD`, `displayXL`, etc.). Apply with `.textStyle(_:)`.
 - **Screen root** — call `.defaultScreenStyle()` on every new screen (sets `bodyMD`, `textPrimary`, `accentLime` tint, `bgCanvas` background).
+- **Helpers** — `.cardBackground()` for content sections, `.shimmering()` with `.redacted(reason: .placeholder)` for loading. Reusable components live in `Design/Components/`.
 
 See `docs/THEMING.md` for the full reference.
 
 ## Testing
 
-- Unit tests use **Swift Testing** (`@Test`, `#expect`) — target ViewModels with `InMemoryTransactionsProvider`.
-- View tests use **swift-snapshot-testing** — snapshot Views with a ViewModel in a known state.
+- Unit tests use **Swift Testing** (`@Test`, `#expect`) — target ViewModels with `MockTransactionsProvider` / `MockCategoriesProvider` (`BudgetTrackerTests/Mocks/`) and `InMemoryAppSettings`.
+- Provider contract tests (`BudgetTrackerTests/ServiceTests/`) run the same suite against both the SwiftData and in-memory providers.
+- View tests use **swift-snapshot-testing** — snapshot Views in a known state, in light and dark mode.
+- Use the `write-tests` skill for detailed conventions.

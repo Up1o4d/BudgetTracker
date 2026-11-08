@@ -11,12 +11,20 @@ Design/
 ├── Theme/
 │   ├── Color+Palette.swift       # Raw named colors
 │   ├── Color+ThemeColors.swift   # Semantic color constants
-│   └── AppTextStyle.swift        # Typography token definitions
-└── Extensions/
-    ├── Color+Hex.swift            # Color(hex:) initializer
-    ├── Color+LightDarkInit.swift  # Color(light:dark:) initializer
-    ├── View+textStyle.swift       # .textStyle(_:) modifier
-    └── View+DefaultScreenStyle.swift  # .defaultScreenStyle() modifier
+│   └── AppTextStyle.swift        # Typography token definitions (Oxanium)
+├── Extensions/
+│   ├── Color+Hex.swift            # Color(hex:) initializer
+│   ├── Color+LightDarkInit.swift  # Color(light:dark:) initializer
+│   ├── View+textStyle.swift       # .textStyle(_:) modifier
+│   ├── View+DefaultScreenStyle.swift  # .defaultScreenStyle() modifier
+│   ├── View+CardBackground.swift  # .cardBackground() modifier
+│   ├── View+Shimmer.swift         # .shimmering() loading modifier
+│   └── View+If.swift              # .if(_:transform:) conditional modifier
+└── Components/                    # Reusable themed views (Chip, CategoryIconView,
+                                   # AppTabBar, AppTextField, CurrencyTextField,
+                                   # PercentageBar, PrimaryButtonStyle, FlowLayout)
+
+Resources/Fonts/                   # Oxanium .ttf files, registered via UIAppFonts in Info.plist
 ```
 
 ---
@@ -32,6 +40,10 @@ Colors flow through two layers: **palette → semantic**. Views only ever refere
 ```swift
 extension Color {
     enum Palette {
+        // Base
+        static let black = Color(hex: "#000000")
+        static let white = Color(hex: "#FFFFFF")
+
         // Neutrals
         static let ink        = Color(hex: "#0A0A0B")
         static let cream      = Color(hex: "#F4F3EE")
@@ -121,12 +133,16 @@ extension Color {
     // Chrome
     static let chromeIsland = Color(light: Palette.black,    dark: Palette.black)
     static let chromeHandle = Color(light: Palette.blackA30, dark: Palette.whiteA70)
+
+    // Shimmer
+    static let shimmerHighlight = Color(light: Palette.whiteA55, dark: Palette.whiteA35)
 }
 ```
 
 **Key decisions:**
 - Accent colors use their muted palette variant in light mode and vibrant variant in dark mode. This keeps contrast acceptable on the cream/white light-mode backgrounds.
 - Category colors are mode-invariant because they are always rendered on a tinted fill (not directly on the background canvas), so they don't need adaptation.
+- **Category colors at runtime come from the `Category` model, not the `cat*` constants.** Each `Category` stores a `colorHex` (persisted alongside the category), and views render it with `Color(hex: category.colorHex)`. See `CategoryIconView`. The `cat*` constants above are currently unused.
 - `textOnAccent` is `ink` in both modes — the accent fills (lime, pink, etc.) are light enough in both modes that dark text reads well on top.
 
 ---
@@ -187,30 +203,34 @@ struct AppTextStyle {
 }
 ```
 
+All tokens use the bundled **Oxanium** typeface through a private `Font.oxanium(_:weight:)` helper. It maps the weight to one of four font files (Regular, Medium, SemiBold, Bold) and creates the font with `relativeTo: .body`, so every token scales with Dynamic Type.
+
 Predefined tokens are static members in an extension:
 
-| Token | Font | Size | Weight | Notes |
-|---|---|---|---|---|
-| `displayXL` | system | 44 | Bold | Monospaced digits, tracking −1.2. Hero currency amounts. |
-| `displayLG` | system | 30 | Bold | Monospaced digits, tracking −0.8. Dashboard numbers. |
-| `titleLG` | largeTitle | — | Bold | Line spacing 7, tracking +0.4. Navigation titles. |
-| `titleMD` | title2 | — | Bold | Monospaced digits, tracking −0.5. Trend card totals. |
-| `titleSM` | headline | — | — | Tracking −0.3. Brand headers. |
-| `bodyLG` | body | — | — | Tracking −0.43. Import/settings list rows. |
-| `bodyMD` | subheadline | — | Medium | Default token. Merchant/category row labels. |
-| `bodyMDSemibold` | subheadline | — | Semibold | Monospaced digits. Money values in rows. |
-| `bodySM` | footnote | — | — | Card descriptors, avg/day labels. |
-| `bodyXS` | caption | — | — | Inline metadata. |
-| `eyebrow` | monospaced | 11 | Medium | Tracking +1.5, auto-uppercased. Section headers. |
-| `metadata` | monospaced | 11 | Regular | Percentages, tags, list indices. |
-| `delta` | monospaced | 11 | Semibold | Trend pills (▲/▼). |
-| `code` | monospaced | 13 | Regular | Rule expressions on category-detail screen. |
-| `buttonLG` | system | 16 | Semibold | Primary CTAs. |
-| `chip` | system | 12 | Medium | Filter chips, category pills. |
-| `tab` | system | 10 | Regular | Tab bar labels, inactive. Tracking +0.2. |
-| `tabActive` | system | 10 | Semibold | Tab bar labels, active. Tracking +0.2. |
+| Token | Size | Weight | Notes |
+|---|---|---|---|
+| `displayXL` | 44 | Bold | Monospaced digits, line spacing 2, tracking −1.2. Hero currency amounts. |
+| `displayLG` | 30 | Bold | Monospaced digits, tracking −0.8. Dashboard hero numbers, percentage deltas. |
+| `titleLG` | 34 | Bold | Line spacing 7, tracking +0.4. Large navigation titles. |
+| `titleMD` | 22 | Bold | Monospaced digits, tracking −0.5. Trend card totals, secondary KPIs. |
+| `titleSM` | 17 | Semibold | Tracking −0.3. Brand headers. |
+| `bodyLG` | 17 | Regular | Tracking −0.43. List rows (import preview, settings). |
+| `bodyMD` | 15 | Medium | Default token. Merchant/category row labels. |
+| `bodyMDSemibold` | 15 | Semibold | Monospaced digits. Money values in rows. |
+| `bodySM` | 13 | Regular | Card descriptors, avg/day labels. |
+| `bodyXS` | 12 | Regular | Inline metadata. |
+| `eyebrow` | 11 | Medium | Tracking +1.5, auto-uppercased. Section headers. |
+| `metadata` | 11 | Regular | Percentages, tags, list indices. |
+| `delta` | 11 | Semibold | Trend pills (▲/▼). |
+| `code` | 13 | Regular | Rule expressions on category-detail screen. |
+| `buttonLG` | 16 | Semibold | Primary CTAs. |
+| `chip` | 12 | Medium | Filter chips, category pills. |
+| `tab` | 10 | Regular | Tab bar labels, inactive. Tracking +0.2. |
+| `tabActive` | 10 | Semibold | Tab bar labels, active. Tracking +0.2. |
 
-Tokens that show numbers use `.monospacedDigit()` so digits don't shift width as values change.
+Tokens that show numbers (`displayXL`, `displayLG`, `titleMD`, `bodyMDSemibold`) use `.monospacedDigit()` so digits don't shift width as values change.
+
+To add a weight, add the `.ttf` to `Resources/Fonts/`, list it under `UIAppFonts` in `Info.plist`, and map it in `Font.oxanium`.
 
 ### Applying typography — `View+textStyle.swift`
 
@@ -247,37 +267,61 @@ extension View {
         textStyle(.bodyMD)
             .foregroundStyle(Color.textPrimary)
             .tint(Color.accentLime)
-            .background(Color.bgCanvas)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.bgCanvas.ignoresSafeArea())
     }
 }
 ```
 
-This sets: `bodyMD` typography, `textPrimary` foreground, `accentLime` tint (controls system controls like toggles and buttons), and `bgCanvas` background. Apply it at the outermost view of every screen — child views override individual properties as needed.
+This sets: `bodyMD` typography, `textPrimary` foreground, `accentLime` tint (controls system controls like toggles and buttons), and a full-size `bgCanvas` background that extends under the safe areas. Apply it at the outermost view of every screen — child views override individual properties as needed.
 
 ---
 
-## Example — `CategoryChip`
+## Other view helpers
 
-`CategoryChip` is a representative consumer of the theming system. It uses typography tokens, semantic colors, and the per-category color from the `Category` model:
+- **`.cardBackground()`** — 16pt padding on a `bgSurface` rounded rectangle (corner radius 20) with a `borderSubtle` stroke. Use for grouped content sections.
+- **`.shimmering()`** — animated highlight sweep (using `shimmerHighlight`) for loading placeholders. Layer it on top of `.redacted(reason: .placeholder)`. Turns itself off when Reduce Motion is enabled.
+- **`.if(_:transform:)`** — applies a modifier only when a condition is true.
+
+---
+
+## Example — `Chip`
+
+`Chip` (`Design/Components/Chip.swift`) is a representative consumer of the theming system. It uses a typography token and semantic colors, and takes an optional icon color, which callers set from the category's `colorHex`:
 
 ```swift
-struct CategoryChip: View {
-    let category: Category
+struct Chip: View {
+    let text: String
+    var systemImage: String?
+    var iconColor: Color = .textSecondary
+    var isSelected: Bool = false
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack {
-            Image(systemName: category.symbolName)
-                .foregroundStyle(category.color)    // category color (cat* constant)
-            Text(category.name)
-                .textStyle(.chip)                   // typography token
+            if let systemImage = systemImage {
+                Image(systemName: systemImage)
+                    .foregroundStyle(iconColor)
+            }
+            Text(text)
+                .textStyle(.chip)                         // typography token
         }
-        .padding(.vertical, 6)
+        .frame(height: 30)
         .padding(.horizontal, 12)
-        .foregroundStyle(Color.textSecondary)        // semantic text color
-        .background(Capsule().foregroundStyle(Color.bgSurface))   // semantic surface
-        .overlay(Capsule().stroke(Color.borderSubtle, lineWidth: 1))
+        .foregroundStyle(Color.textSecondary)             // semantic text color
+        .background(
+            Capsule()
+                .fill(Color.bgSurface)                    // semantic surface
+                .stroke(Color.borderSubtle, lineWidth: 1)
+        )
+        // Selected chips invert the color scheme so they stand out
+        .colorScheme(isSelected ? (colorScheme == .dark ? .light : .dark) : colorScheme)
     }
 }
+
+// Usage with a category
+Chip(text: category.name, systemImage: category.symbolName, iconColor: Color(hex: category.colorHex))
 ```
 
 ---
@@ -285,6 +329,6 @@ struct CategoryChip: View {
 ## Rules
 
 1. **Never use palette colors in views.** Always go through the semantic layer (`Color.bgCanvas`, `Color.textPrimary`, etc.).
-2. **Never hardcode hex or opacity values in views.** If a needed color doesn't exist as a semantic constant, add it to `Color+ThemeColors.swift`.
+2. **Never hardcode hex or opacity values in views.** If a needed color doesn't exist as a semantic constant, add it to `Color+ThemeColors.swift`. The one exception is category colors, which are data: render them with `Color(hex: category.colorHex)`.
 3. **Always use `AppTextStyle` tokens.** Don't call `.font(...)` directly in views.
 4. **Call `.defaultScreenStyle()` at the root of every new screen.**
