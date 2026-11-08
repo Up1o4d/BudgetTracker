@@ -138,4 +138,70 @@ struct HomeSummarySectionViewSnapshotTests {
         .frame(width: 350)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
     }
+
+    // MARK: - No change vs. last month
+
+    @Test
+    func homeSummarySectionView_noChangeVsLastMonth_light() {
+        let view = HomeSummarySectionView(
+            categorySpending: Self.categorySpending,
+            totalCurrentMonthSpending: 1050,
+            budget: 2300,
+            currency: "USD",
+            percentageOfBudgetSpent: 1050.0 / 2300.0,
+            lastMonthSpendingDiffPercent: 0,
+            previousMonthName: "September"
+        )
+        .frame(width: 350)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
+    }
+
+    @Test
+    func homeSummarySectionView_noChangeVsLastMonth_dark() {
+        let view = HomeSummarySectionView(
+            categorySpending: Self.categorySpending,
+            totalCurrentMonthSpending: 1050,
+            budget: 2300,
+            currency: "USD",
+            percentageOfBudgetSpent: 1050.0 / 2300.0,
+            lastMonthSpendingDiffPercent: 0,
+            previousMonthName: "September"
+        )
+        .frame(width: 350)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
+    }
+
+    // MARK: - Redacted
+
+    @Test
+    func homeSummarySectionView_redacted_light() {
+        let view = HomeSummarySectionView(
+            categorySpending: Self.categorySpending,
+            totalCurrentMonthSpending: 1050,
+            budget: 2300,
+            currency: "USD",
+            percentageOfBudgetSpent: 1050.0 / 2300.0,
+            lastMonthSpendingDiffPercent: 0.12,
+            previousMonthName: "September"
+        )
+        .redacted(reason: .placeholder)
+        .frame(width: 350)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
+    }
+
+    @Test
+    func homeSummarySectionView_redacted_dark() {
+        let view = HomeSummarySectionView(
+            categorySpending: Self.categorySpending,
+            totalCurrentMonthSpending: 1050,
+            budget: 2300,
+            currency: "USD",
+            percentageOfBudgetSpent: 1050.0 / 2300.0,
+            lastMonthSpendingDiffPercent: 0.12,
+            previousMonthName: "September"
+        )
+        .redacted(reason: .placeholder)
+        .frame(width: 350)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
+    }
 }
