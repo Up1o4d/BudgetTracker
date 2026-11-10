@@ -41,7 +41,7 @@ struct AddView: View {
                 ProgressView()
             }
         }
-        .defaultScreenStyle()
+        .screenDefaults()
         .scrollContentBackground(.hidden)
         .task { await viewModel.loadTransactions() }
         .task { await viewModel.loadCategories() }

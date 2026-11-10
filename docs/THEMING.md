@@ -16,7 +16,8 @@ Design/
 │   ├── Color+Hex.swift            # Color(hex:) initializer
 │   ├── Color+LightDarkInit.swift  # Color(light:dark:) initializer
 │   ├── View+textStyle.swift       # .textStyle(_:) modifier
-│   ├── View+DefaultScreenStyle.swift  # .defaultScreenStyle() modifier
+│   ├── View+ScreenDefaults.swift  # .screenDefaults() modifier
+│   ├── View+DismissesKeyboardOnBackgroundTap.swift  # .dismissesKeyboardOnBackgroundTap()
 │   ├── View+CardBackground.swift  # .cardBackground() modifier
 │   ├── View+Shimmer.swift         # .shimmering() loading modifier
 │   └── View+If.swift              # .if(_:transform:) conditional modifier
@@ -257,23 +258,24 @@ Text("Groceries")
 
 ---
 
-## Screen-level defaults — `View+DefaultScreenStyle.swift`
+## Screen-level defaults — `View+ScreenDefaults.swift`
 
-`.defaultScreenStyle()` applies a complete baseline to any screen root in one call:
+`.screenDefaults()` applies a complete baseline to any screen root in one call:
 
 ```swift
 extension View {
-    func defaultScreenStyle() -> some View {
+    func screenDefaults() -> some View {
         textStyle(.bodyMD)
             .foregroundStyle(Color.textPrimary)
             .tint(Color.accentLime)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.bgCanvas.ignoresSafeArea())
+            .dismissesKeyboardOnBackgroundTap()
     }
 }
 ```
 
-This sets: `bodyMD` typography, `textPrimary` foreground, `accentLime` tint (controls system controls like toggles and buttons), and a full-size `bgCanvas` background that extends under the safe areas. Apply it at the outermost view of every screen — child views override individual properties as needed.
+This sets: `bodyMD` typography, `textPrimary` foreground, `accentLime` tint (controls system controls like toggles and buttons), and a full-size `bgCanvas` background that extends under the safe areas. It also applies `.dismissesKeyboardOnBackgroundTap()`: a tap that no child view handles (empty space, including blank areas of a scroll view, or non-interactive content like `Text`) dismisses the keyboard. Child gestures take precedence, so buttons, links and text fields keep working without closing it. Apply it at the outermost view of every screen — child views override individual properties as needed.
 
 ---
 
@@ -331,4 +333,4 @@ Chip(text: category.name, systemImage: category.symbolName, iconColor: Color(hex
 1. **Never use palette colors in views.** Always go through the semantic layer (`Color.bgCanvas`, `Color.textPrimary`, etc.).
 2. **Never hardcode hex or opacity values in views.** If a needed color doesn't exist as a semantic constant, add it to `Color+ThemeColors.swift`. The one exception is category colors, which are data: render them with `Color(hex: category.colorHex)`.
 3. **Always use `AppTextStyle` tokens.** Don't call `.font(...)` directly in views.
-4. **Call `.defaultScreenStyle()` at the root of every new screen.**
+4. **Call `.screenDefaults()` at the root of every new screen.**

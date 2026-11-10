@@ -14,7 +14,7 @@ struct HomeView: View {
                 ContentUnavailableView("screen.home.error", systemImage: "exclamationmark.triangle")
             }
         }
-        .defaultScreenStyle()
+        .screenDefaults()
         .navigationTitle("screen.home.title")
         .task { await viewModel.loadData() }
     }

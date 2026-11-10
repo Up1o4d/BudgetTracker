@@ -84,5 +84,5 @@ struct HomeMonthPageView: View {
         budget: 2300,
         currency: "USD"
     )
-    .defaultScreenStyle()
+    .screenDefaults()
 }

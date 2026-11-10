@@ -16,7 +16,7 @@ struct ActivityView: View {
                 ContentUnavailableView("screen.activity.error", systemImage: "exclamationmark.triangle")
             }
         }
-        .defaultScreenStyle()
+        .screenDefaults()
         .navigationTitle("screen.activity.title")
         .task { await viewModel.loadData() }
     }

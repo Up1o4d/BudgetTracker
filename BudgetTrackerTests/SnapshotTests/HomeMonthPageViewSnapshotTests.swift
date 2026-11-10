@@ -57,7 +57,7 @@ struct HomeMonthPageViewSnapshotTests {
 
     private func makeView(summary: MonthSummary) -> some View {
         HomeMonthPageView(summary: summary, budget: 2300, currency: "USD")
-            .defaultScreenStyle()
+            .screenDefaults()
             .frame(width: 393, height: 852)
     }
 

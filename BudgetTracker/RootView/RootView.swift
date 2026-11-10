@@ -58,7 +58,7 @@ struct RootView: View {
                 }
             }
         }
-        .defaultScreenStyle()
+        .screenDefaults()
         .task { await viewModel.runAppSetup() }
     }
 

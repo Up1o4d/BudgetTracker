@@ -51,7 +51,7 @@ Tokens live in `Design/Theme/`, applied via extensions in `Design/Extensions/`.
 - **Colors** — two layers: raw palette (`Color+Palette.swift`) → semantic constants (`Color+ThemeColors.swift`, e.g. `Color.bgCanvas`, `Color.textPrimary`). Always use semantic names in views. Light/dark variants are encoded at the semantic layer via `Color(light:dark:)`.
 - **Category colors** — come from `Category.colorHex`, rendered with `Color(hex:)`. This is the only sanctioned hex in views.
 - **Typography** — `AppTextStyle` bundles font (the bundled Oxanium typeface) + spacing into named tokens (`bodyMD`, `displayXL`, etc.). Apply with `.textStyle(_:)`.
-- **Screen root** — call `.defaultScreenStyle()` on every new screen (sets `bodyMD`, `textPrimary`, `accentLime` tint, `bgCanvas` background).
+- **Screen root** — call `.screenDefaults()` on every new screen (sets `bodyMD`, `textPrimary`, `accentLime` tint, `bgCanvas` background, and dismisses the keyboard on background taps).
 - **Helpers** — `.cardBackground()` for content sections, `.shimmering()` with `.redacted(reason: .placeholder)` for loading. Reusable components live in `Design/Components/`.
 
 See `docs/THEMING.md` for the full reference.
