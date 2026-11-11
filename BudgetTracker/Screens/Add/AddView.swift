@@ -6,7 +6,7 @@ struct AddView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            headerView
+            SheetHeader(title: "screen.add.title", onClose: { dismiss() })
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -49,26 +49,6 @@ struct AddView: View {
         } message: {
             Text("screen.add.error.message")
         }
-    }
-
-    private var headerView: some View {
-        HStack {
-            Text("screen.add.title")
-                .textStyle(.titleMD)
-
-            Spacer()
-
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .padding(10)
-                    .background(
-                        Circle()
-                            .fill(Color.bgSurface)
-                            .stroke(Color.borderSubtle, lineWidth: 1)
-                    )
-            }
-        }
-        .padding(.vertical, 16)
     }
 }
 

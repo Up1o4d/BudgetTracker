@@ -26,7 +26,8 @@ struct HomeView: View {
                     HomeMonthPageView(
                         summary: viewModel.summary(for: month),
                         budget: viewModel.budget,
-                        currency: viewModel.currency
+                        currency: viewModel.currency,
+                        onBudgetTap: viewModel.editBudgetTapped
                     )
                     .containerRelativeFrame(.horizontal)
                 }
@@ -55,6 +56,7 @@ struct HomeView: View {
     HomeView(viewModel: .init(
         transactionsProvider: InMemoryTransactionsProvider(),
         categoriesProvider: InMemoryCategoriesProvider(),
-        appSettings: InMemoryAppSettings()
+        appSettings: InMemoryAppSettings(budget: 2300),
+        router: AppRouter()
     ))
 }

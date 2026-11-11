@@ -43,6 +43,11 @@ struct RootView: View {
                             appSettings: viewModel.appDependencies.appSettings,
                             onSaved: { router.presentedSheet = nil }
                         ))
+                    case .editBudget:
+                        EditBudgetView(viewModel: .init(
+                            appSettings: viewModel.appDependencies.appSettings,
+                            onSaved: { router.presentedSheet = nil }
+                        ))
                     }
                 }
             case .error:
@@ -69,7 +74,8 @@ struct RootView: View {
             HomeView(viewModel: .init(
                 transactionsProvider: viewModel.appDependencies.transactionsProvider,
                 categoriesProvider: viewModel.appDependencies.categoriesProvider,
-                appSettings: viewModel.appDependencies.appSettings
+                appSettings: viewModel.appDependencies.appSettings,
+                router: router
             ))
         case .activity:
             ActivityView(viewModel: .init(

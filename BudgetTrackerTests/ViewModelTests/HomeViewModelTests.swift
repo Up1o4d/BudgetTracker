@@ -5,15 +5,20 @@ import Testing
 struct HomeViewModelTests {
     let transactionsProvider: MockTransactionsProvider
     let categoriesProvider: MockCategoriesProvider
+    let appSettings: InMemoryAppSettings
+    let router: AppRouter
     let sut: HomeViewModel
 
     init() {
         transactionsProvider = MockTransactionsProvider()
         categoriesProvider = MockCategoriesProvider()
+        appSettings = InMemoryAppSettings()
+        router = AppRouter()
         sut = HomeViewModel(
             transactionsProvider: transactionsProvider,
             categoriesProvider: categoriesProvider,
-            appSettings: InMemoryAppSettings()
+            appSettings: appSettings,
+            router: router
         )
     }
 
@@ -123,5 +128,77 @@ struct HomeViewModelTests {
         await sut.loadData()
         #expect(sut.loadedMonths == nil)
         #expect(sut.summary(for: .current()).isLoading)
+    }
+
+    // MARK: - budget
+
+    @Test
+    func budget_readsFromAppSettings() {
+        #expect(sut.budget == nil)
+
+        appSettings.budget = 2300
+
+        #expect(sut.budget == 2300)
+    }
+
+    @Test
+    func budget_changeInAppSettingsNotifiesObservers() async {
+        let changed = AsyncEvent()
+        withObservationTracking {
+            _ = sut.budget
+        } onChange: {
+            Task { await changed.signal() }
+        }
+
+        appSettings.budget = 1000
+
+        await changed.wait()
+        #expect(sut.budget == 1000)
+    }
+
+    // MARK: - summary(for:) budget percentage
+
+    @Test
+    func summaryPercentageOfBudgetSpent_isZeroWhenBudgetNotSet() async {
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 100, vendor: "A", categoryId: "groceries", date: dateInside(.current())),
+        ]
+        await sut.loadData()
+        await waitUntil { sut.transactionsState.data.count == 1 }
+
+        #expect(sut.summary(for: .current()).percentageOfBudgetSpent == 0)
+    }
+
+    @Test
+    func summaryPercentageOfBudgetSpent_isZeroWhenBudgetIsZero() async {
+        appSettings.budget = 0
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 100, vendor: "A", categoryId: "groceries", date: dateInside(.current())),
+        ]
+        await sut.loadData()
+        await waitUntil { sut.transactionsState.data.count == 1 }
+
+        #expect(sut.summary(for: .current()).percentageOfBudgetSpent == 0)
+    }
+
+    @Test
+    func summaryPercentageOfBudgetSpent_dividesSpendingByBudget() async {
+        appSettings.budget = 400
+        transactionsProvider.stubbedTransactions = [
+            Transaction(id: "1", amount: 100, vendor: "A", categoryId: "groceries", date: dateInside(.current())),
+        ]
+        await sut.loadData()
+        await waitUntil { sut.transactionsState.data.count == 1 }
+
+        #expect(sut.summary(for: .current()).percentageOfBudgetSpent == 0.25)
+    }
+
+    // MARK: - editBudgetTapped()
+
+    @Test
+    func editBudgetTapped_presentsEditBudgetSheet() {
+        sut.editBudgetTapped()
+
+        #expect(router.presentedSheet == .editBudget)
     }
 }

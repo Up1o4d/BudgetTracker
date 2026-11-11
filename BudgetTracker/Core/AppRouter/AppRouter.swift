@@ -2,6 +2,7 @@ import SwiftUI
 
 enum AppSheet: Identifiable {
     case addTransaction
+    case editBudget
 
     var id: Self { self }
 }

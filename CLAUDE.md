@@ -23,7 +23,7 @@ xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination '
 
 ## Architecture
 
-MVVM app with two tabs (Home, Activity) plus an Add-transaction sheet opened from the tab bar. Insights and Import tabs are planned but not implemented. See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
+MVVM app with two tabs (Home, Activity) plus two sheets: Add-transaction (opened from the tab bar) and Edit Budget (opened by tapping the budget on Home's summary card). Insights and Import tabs are planned but not implemented. See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
 
 ```
 View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol / CategoriesProviderProtocol / AppSettingsProtocol
@@ -41,6 +41,8 @@ View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol / CategoriesPr
 **Providers** — `TransactionsProviderProtocol` and `CategoriesProviderProtocol` are the seam between the app and storage. Providers are actors that stream `DataState<T>` via `AsyncStream`: call `transactionsStream()` to get `(stream, uuid)`, observe the stream, and pass the same `uuid` to `fetchTransactions(uuid:filter:)`. Writes re-emit to every live stream. Shared stream logic lives in `DataStreamRegistry`.
 
 **Category** — a `struct` (id, name, symbolName, colorHex) managed via `CategoriesProviderProtocol`. Defaults are in `Category.all` and seeded on first launch by `RootViewModel.runAppSetup()`. `Transaction` references a category by `categoryId: String`; ViewModels join them at display time, falling back to `Category.unknown`.
+
+**Settings** — `AppSettingsProtocol` requires `AnyObject, Observable`; both implementations are `@Observable`, so views re-render when a setting changes, even when read through a ViewModel's computed passthrough (e.g. `HomeViewModel.budget`). `AppSettings` mirrors `UserDefaults` into stored properties (loaded in `init`, written back in `didSet`) because `@Observable` only tracks stored properties. `budget` is a single app-wide `Decimal?` (`nil` = not set), stored as a string.
 
 **`DataState` / `LoadingState`** — `DataState` (`loadingState`, `data`, `error`) is what provider streams emit; `.loading` and `.error` emissions carry the last-known data. `LoadingState` (`loading`/`idle`/`error`) drives UI states; `LoadingState.merged(_:)` combines several.
 

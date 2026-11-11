@@ -5,6 +5,7 @@ final class HomeViewModel {
     private let transactionsProvider: any TransactionsProviderProtocol
     private let categoriesProvider: any CategoriesProviderProtocol
     private let appSettings: any AppSettingsProtocol
+    private let router: AppRouter
 
     private var transactionsObserverTask: Task<Void, Never>?
     private var categoriesObserverTask: Task<Void, Never>?
@@ -41,8 +42,10 @@ final class HomeViewModel {
         appSettings.currency
     }
 
-    var budget: Decimal {
-        2300.0 // TODO: Add to user defaults / App settings
+    /// Reads straight through to `appSettings`, which is `@Observable` — views reading this
+    /// re-render when the budget changes, without the view model observing anything itself.
+    var budget: Decimal? {
+        appSettings.budget
     }
 
     private var categoriesById: [String: Category] {
@@ -57,12 +60,17 @@ final class HomeViewModel {
             headerText: headerText(for: month),
             totalSpending: totalSpending,
             transactionCount: monthTransactions.count,
-            percentageOfBudgetSpent: Double(truncating: (totalSpending / budget) as NSNumber),
+            percentageOfBudgetSpent: percentageOfBudgetSpent(totalSpending),
             lastMonthSpendingDiffPercent: lastMonthSpendingDiffPercent(for: month, totalSpending: totalSpending),
             categorySpending: categorySpending(for: monthTransactions, totalSpending: totalSpending),
             dailySpendingSums: dailySpendingSums(for: month, transactions: monthTransactions),
             isLoading: isLoading(month)
         )
+    }
+
+    private func percentageOfBudgetSpent(_ totalSpending: Decimal) -> Double {
+        guard let budget, budget > 0 else { return 0 }
+        return Double(truncating: (totalSpending / budget) as NSNumber)
     }
 
     private func transactions(in month: MonthYear) -> [Transaction] {
@@ -142,11 +150,13 @@ final class HomeViewModel {
     init(
         transactionsProvider: any TransactionsProviderProtocol,
         categoriesProvider: any CategoriesProviderProtocol,
-        appSettings: any AppSettingsProtocol
+        appSettings: any AppSettingsProtocol,
+        router: AppRouter
     ) {
         self.transactionsProvider = transactionsProvider
         self.categoriesProvider = categoriesProvider
         self.appSettings = appSettings
+        self.router = router
         // ~100 years back, up to and including the current month.
         self.months = MonthYear.range(endingAt: .current(), count: 1201)
     }
@@ -212,6 +222,10 @@ final class HomeViewModel {
         if case .success = transactions, case .success = categories {
             successfullyFinishedInitialLoad = true
         }
+    }
+
+    func editBudgetTapped() {
+        router.presentedSheet = .editBudget
     }
 
     private func reloadForSelectedMonth() {

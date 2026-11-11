@@ -3,8 +3,9 @@ import SwiftUI
 /// One page of the Home month pager: the dashboard sections for a single month.
 struct HomeMonthPageView: View {
     let summary: MonthSummary
-    let budget: Decimal
+    let budget: Decimal?
     let currency: String
+    var onBudgetTap: () -> Void = {}
 
     var body: some View {
         ScrollView {
@@ -20,7 +21,8 @@ struct HomeMonthPageView: View {
                         currency: currency,
                         percentageOfBudgetSpent: summary.percentageOfBudgetSpent,
                         lastMonthSpendingDiffPercent: summary.lastMonthSpendingDiffPercent,
-                        previousMonthName: summary.month.previousMonth.monthName
+                        previousMonthName: summary.month.previousMonth.monthName,
+                        onBudgetTap: onBudgetTap
                     )
                 }
 

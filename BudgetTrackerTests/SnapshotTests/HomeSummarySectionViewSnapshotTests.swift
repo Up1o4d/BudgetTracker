@@ -204,4 +204,36 @@ struct HomeSummarySectionViewSnapshotTests {
         .frame(width: 350)
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
     }
+
+    // MARK: - No budget set
+
+    @Test
+    func homeSummarySectionView_noBudget_light() {
+        let view = HomeSummarySectionView(
+            categorySpending: Self.categorySpending,
+            totalCurrentMonthSpending: 1050,
+            budget: nil,
+            currency: "USD",
+            percentageOfBudgetSpent: 0,
+            lastMonthSpendingDiffPercent: 0.12,
+            previousMonthName: "September"
+        )
+        .frame(width: 350)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
+    }
+
+    @Test
+    func homeSummarySectionView_noBudget_dark() {
+        let view = HomeSummarySectionView(
+            categorySpending: Self.categorySpending,
+            totalCurrentMonthSpending: 1050,
+            budget: nil,
+            currency: "USD",
+            percentageOfBudgetSpent: 0,
+            lastMonthSpendingDiffPercent: 0.12,
+            previousMonthName: "September"
+        )
+        .frame(width: 350)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
+    }
 }

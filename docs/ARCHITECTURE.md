@@ -7,6 +7,7 @@ BudgetTracker is a small SwiftUI app for tracking personal transactions. The goa
 - **Home** — a month-by-month spending dashboard. Months are paged horizontally; each page shows a summary against the monthly budget, a month-to-date spending chart, and spending broken down by category.
 - **Activity** — the transaction list, grouped by date, with vendor search and category filtering.
 - **Add** — a sheet (opened from the tab bar's add button) for entering a transaction: amount, vendor (with suggestions from past vendors), category, and date (with quick-date shortcuts).
+- **Edit Budget** — a sheet (opened by tapping the budget column on Home's summary card) for setting the single app-wide monthly budget. The value is written to `AppSettings` only on Save; dismissing discards the draft.
 
 Not yet implemented: editing and deleting transactions, and the planned Insights and Import tabs.
 
@@ -39,6 +40,7 @@ InMemory providers  + InMemoryAppSettings           (development, previews, cont
 - **`DataState` and `LoadingState`.** Every stream emission is a `DataState` (`loadingState`, `data`, `error`). `.loading` and `.error` emissions carry the last-known data so lists never blank out. `LoadingState.merged(_:)` combines several states into one value for the view.
 - **Composition at the route boundary.** `RootView` holds `AppDependencies` (via `RootViewModel`) and the `AppRouter`, and constructs the correct ViewModel for each tab and sheet. Child views receive a fully-constructed ViewModel via `init` and know nothing about the dependency container. If the route count grows, this can move into a dedicated factory.
 - **App setup in `RootViewModel`.** On launch, `runAppSetup()` seeds the default categories into the categories provider and sets the currency from the user's locale (once each, tracked through `AppSettings`). The root view shows loading/error states around this.
+- **Observable settings.** `AppSettings` and `InMemoryAppSettings` are `@Observable` (enforced by `AppSettingsProtocol: AnyObject, Observable`). ViewModels expose settings as plain computed passthroughs; SwiftUI's observation tracking follows the read through the ViewModel, so e.g. Home updates as soon as the Edit Budget sheet saves, without the ViewModel subscribing to anything.
 - **`Category` as a struct with static instances.** Categories carry presentation metadata (name, SF Symbol, color hex) alongside identity, so a struct fits better than an enum. The defaults are exposed via `Category.all`, seeded into storage on first launch, and read back through `CategoriesProviderProtocol`. Transactions reference categories by `categoryId`; ViewModels join them at display time, falling back to `Category.unknown`.
 
 ## Testing strategy

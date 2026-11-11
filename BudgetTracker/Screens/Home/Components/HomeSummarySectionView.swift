@@ -6,11 +6,12 @@ struct HomeSummarySectionView: View {
 
     let categorySpending: [CategorySpending]
     let totalCurrentMonthSpending: Decimal
-    let budget: Decimal
+    let budget: Decimal?
     let currency: String
     let percentageOfBudgetSpent: Double
     let lastMonthSpendingDiffPercent: Double?
     let previousMonthName: String
+    var onBudgetTap: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 16) {
@@ -62,19 +63,39 @@ struct HomeSummarySectionView: View {
     }
 
     var budgetSectionView: some View {
+        Button(action: onBudgetTap) {
+            budgetSectionContent
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!redactionReasons.isEmpty)
+    }
+
+    var budgetSectionContent: some View {
         VStack(alignment: .leading) {
-            Text("BUDGET")
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textTertiary)
+            HStack(spacing: 4) {
+                Text("BUDGET")
+                Image(systemName: "pencil")
+            }
+            .textStyle(.eyebrow)
+            .foregroundStyle(Color.textTertiary)
+
             HStack(spacing: 4) {
                 Text(totalCurrentMonthSpending, format: .currency(code: currency))
                     .minimumScaleFactor(0.1)
                     .lineLimit(1)
                 Text("/")
-                Text(budget, format: .currency(code: currency))
-                    .foregroundStyle(Color.textSecondary)
-                    .minimumScaleFactor(0.1)
-                    .lineLimit(1)
+                if let budget {
+                    Text(budget, format: .currency(code: currency))
+                        .foregroundStyle(Color.textSecondary)
+                        .minimumScaleFactor(0.1)
+                        .lineLimit(1)
+                } else {
+                    Text("Set budget") // TODO: Localize
+                        .foregroundStyle(Color.accentLime)
+                        .minimumScaleFactor(0.1)
+                        .lineLimit(1)
+                }
             }
 
             PercentageBar(
@@ -191,6 +212,23 @@ struct HomeSummarySectionView: View {
     )
     .padding()
     .redacted(reason: .placeholder)
+}
+
+#Preview("No budget") {
+    HomeSummarySectionView(
+        categorySpending: [
+            .init(category: .groceries, totalAmount: 420, percentageOfTotal: 0.4, roundedPercentage: 40),
+            .init(category: .rent, totalAmount: 380, percentageOfTotal: 0.36, roundedPercentage: 36),
+            .init(category: .dining, totalAmount: 250, percentageOfTotal: 0.24, roundedPercentage: 24),
+        ],
+        totalCurrentMonthSpending: 1050,
+        budget: nil,
+        currency: "USD",
+        percentageOfBudgetSpent: 0,
+        lastMonthSpendingDiffPercent: 0.12,
+        previousMonthName: "September"
+    )
+    .padding()
 }
 
 #Preview("Empty") {
