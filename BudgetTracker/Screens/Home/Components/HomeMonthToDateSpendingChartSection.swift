@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 
 struct HomeMonthToDateSpendingChartSection: View {
@@ -7,23 +6,6 @@ struct HomeMonthToDateSpendingChartSection: View {
     let selectedMonth: MonthYear
     let currentMonthDailySpendingSums: [Decimal]
     let currency: String
-
-    private var chartColor: Color {
-        Color.accentLime
-    }
-
-    private var linearGradient: LinearGradient {
-        LinearGradient(
-            gradient: Gradient(
-                colors: [
-                    chartColor.opacity(0.4),
-                    chartColor.opacity(0),
-                ]
-            ),
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
 
     private var spendingSums: [Decimal] {
         guard redactionReasons.isEmpty else { return [] }
@@ -55,20 +37,11 @@ struct HomeMonthToDateSpendingChartSection: View {
                     alignment: .trailing
                 )
             }
-            Chart {
-                ForEach(spendingSums.enumerated(), id: \.offset) { inx, value in
-                    LineMark(x: .value("Day", inx + 1),
-                             y: .value("Value", value))
-                }
-                .foregroundStyle(chartColor)
-
-                ForEach(spendingSums.enumerated(), id: \.offset) { inx, value in
-                    AreaMark(x: .value("Day", inx + 1),
-                             y: .value("Value", value))
-                }
-                .foregroundStyle(linearGradient)
-            }
-            .chartXScale(domain: 1 ... selectedMonth.numberOfDaysInMonth)
+            SpendingLineChart(
+                values: spendingSums,
+                color: .accentLime,
+                xMax: selectedMonth.numberOfDaysInMonth
+            )
             .frame(height: 150)
         }
         .cardBackground()
