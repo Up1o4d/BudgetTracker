@@ -161,6 +161,14 @@ final class HomeViewModel {
         self.months = MonthYear.range(endingAt: .current(), count: 1201)
     }
 
+    /// Provider streams never finish, so cancel the observers to terminate them and let the
+    /// provider deregister them. See "Stream cleanup" in docs/ARCHITECTURE.md.
+    isolated deinit {
+        transactionsObserverTask?.cancel()
+        categoriesObserverTask?.cancel()
+        reloadTask?.cancel()
+    }
+
     /// Returns the fetch's settled result so `loadData` can decide whether the initial load
     /// succeeded from the value it awaits directly, rather than from `transactionsState`, which
     /// the stream observer updates asynchronously and may not have drained yet.
@@ -226,6 +234,10 @@ final class HomeViewModel {
 
     func editBudgetTapped() {
         router.presentedSheet = .editBudget
+    }
+
+    func categoryTapped(_ category: Category, in month: MonthYear) {
+        router.push(AppRoute.monthCategorySpending(month: month, category: category), on: .home)
     }
 
     private func reloadForSelectedMonth() {

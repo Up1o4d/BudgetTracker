@@ -23,7 +23,7 @@ xcodebuild -project BudgetTracker.xcodeproj -scheme BudgetTracker -destination '
 
 ## Architecture
 
-MVVM app with two tabs (Home, Activity) plus two sheets: Add-transaction (opened from the tab bar) and Edit Budget (opened by tapping the budget on Home's summary card). Insights and Import tabs are planned but not implemented. See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
+MVVM app with two tabs (Home, Activity) plus two sheets: Add-transaction (opened from the tab bar) and Edit Budget (opened by tapping the budget on Home's summary card), and one pushed screen: Month Category Spending (opened by tapping a category row on Home). Insights and Import tabs are planned but not implemented. See `docs/ARCHITECTURE.md` for the full rationale. Key layers:
 
 ```
 View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol / CategoriesProviderProtocol / AppSettingsProtocol
@@ -36,9 +36,9 @@ View (SwiftUI)  →  ViewModel  →  TransactionsProviderProtocol / CategoriesPr
 
 **Storage** — SwiftData is the production storage. `BudgetTrackerApp` currently uses `.inMemory()` during development; the `.swiftData()` call is commented out alongside it.
 
-**Navigation** — `AppRouter` owns the selected tab, a `NavigationPath` per tab, and the presented sheet (`AppSheet`). `RootView` binds each `NavigationStack` to its tab's path and presents sheets. ViewModels that trigger navigation receive the router via `init`. Add `navigationDestination` modifiers in `RootView` as new routes are added.
+**Navigation** — `AppRouter` owns the selected tab, a `NavigationPath` per tab, and the presented sheet (`AppSheet`). `RootView` binds each `NavigationStack` to its tab's path and presents sheets. ViewModels that trigger navigation receive the router via `init`. Push destinations are cases of `AppRoute`, resolved by the single `navigationDestination(for: AppRoute.self)` in `RootView` — add a case there for each new route.
 
-**Providers** — `TransactionsProviderProtocol` and `CategoriesProviderProtocol` are the seam between the app and storage. Providers are actors that stream `DataState<T>` via `AsyncStream`: call `transactionsStream()` to get `(stream, uuid)`, observe the stream, and pass the same `uuid` to `fetchTransactions(uuid:filter:)`. Writes re-emit to every live stream. Shared stream logic lives in `DataStreamRegistry`.
+**Providers** — `TransactionsProviderProtocol` and `CategoriesProviderProtocol` are the seam between the app and storage. Providers are actors that stream `DataState<T>` via `AsyncStream`: call `transactionsStream()` to get `(stream, uuid)`, observe the stream, and pass the same `uuid` to `fetchTransactions(uuid:filter:)`. Writes re-emit to every live stream. Shared stream logic lives in `DataStreamRegistry`. Every ViewModel that owns observer tasks must cancel them (and any other tasks it owns) in an `isolated deinit` — see "Stream cleanup" in `docs/ARCHITECTURE.md`.
 
 **Category** — a `struct` (id, name, symbolName, colorHex) managed via `CategoriesProviderProtocol`. Defaults are in `Category.all` and seeded on first launch by `RootViewModel.runAppSetup()`. `Transaction` references a category by `categoryId: String`; ViewModels join them at display time, falling back to `Category.unknown`.
 

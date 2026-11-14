@@ -1,5 +1,6 @@
 @testable import BudgetTracker
 import Foundation
+import SwiftUI
 import Testing
 
 struct HomeViewModelTests {
@@ -200,5 +201,15 @@ struct HomeViewModelTests {
         sut.editBudgetTapped()
 
         #expect(router.presentedSheet == .editBudget)
+    }
+
+    // MARK: - categoryTapped(_:in:)
+
+    @Test
+    func categoryTapped_pushesRouteOnHomeTab() {
+        sut.categoryTapped(.groceries, in: .current())
+
+        #expect(router.navigationPathBinding(for: .home).wrappedValue.count == 1)
+        #expect(router.navigationPathBinding(for: .activity).wrappedValue.isEmpty)
     }
 }

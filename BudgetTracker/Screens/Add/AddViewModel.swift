@@ -35,6 +35,13 @@ final class AddViewModel {
         self.appSettings = appSettings
         self.onSaved = onSaved
     }
+
+    /// Provider streams never finish, so cancel the observers to terminate them and let the
+    /// provider deregister them. See "Stream cleanup" in docs/ARCHITECTURE.md.
+    isolated deinit {
+        transactionsObserverTask?.cancel()
+        categoriesObserverTask?.cancel()
+    }
 }
 
 // MARK: - Form state

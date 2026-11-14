@@ -16,6 +16,9 @@ final class MockTransactionsProvider: TransactionsProviderProtocol, @unchecked S
 
     private var streamRegistry: [UUID: Subscription] = [:]
 
+    /// Streams not yet terminated — lets tests verify consumers clean up their observers.
+    var activeStreamCount: Int { streamRegistry.count }
+
     func transactionsStream() async -> (AsyncStream<DataState<Transaction>>, UUID) {
         transactionsStreamCallCount += 1
 

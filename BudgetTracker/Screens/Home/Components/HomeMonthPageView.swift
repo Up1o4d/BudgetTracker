@@ -6,6 +6,7 @@ struct HomeMonthPageView: View {
     let budget: Decimal?
     let currency: String
     var onBudgetTap: () -> Void = {}
+    var onCategoryTap: (Category) -> Void = { _ in }
 
     var body: some View {
         ScrollView {
@@ -38,7 +39,8 @@ struct HomeMonthPageView: View {
                     HomeCategorySpendingSectionView(
                         categorySpending: summary.categorySpending,
                         currency: currency,
-                        maxCategorySpending: summary.maxCategorySpending
+                        maxCategorySpending: summary.maxCategorySpending,
+                        onCategoryTap: onCategoryTap
                     )
                 }
             }

@@ -20,11 +20,15 @@ struct RootView: View {
                             tabRoot(for: tab)
                                 .safeAreaPadding(.bottom, AppTabBar.height)
                                 .navigationBarTitleDisplayMode(.inline)
+                                .navigationDestination(for: AppRoute.self) { route in
+                                    destination(for: route)
+                                        .safeAreaPadding(.bottom, AppTabBar.height)
+                                        .navigationBarTitleDisplayMode(.inline)
+                                }
                         }
                         .toolbar(.hidden, for: .tabBar)
                         .tabItem { Label(tab.name, systemImage: tab.systemImage) }
                         .tag(tab)
-                        // TODO: - Add navigationDestination to resolve navigation screens
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
@@ -65,6 +69,19 @@ struct RootView: View {
         }
         .screenDefaults()
         .task { await viewModel.runAppSetup() }
+    }
+
+    @ViewBuilder
+    private func destination(for route: AppRoute) -> some View {
+        switch route {
+        case let .monthCategorySpending(month, category):
+            MonthCategorySpendingView(viewModel: .init(
+                month: month,
+                category: category,
+                transactionsProvider: viewModel.appDependencies.transactionsProvider,
+                appSettings: viewModel.appDependencies.appSettings
+            ))
+        }
     }
 
     @ViewBuilder

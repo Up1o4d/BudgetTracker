@@ -7,6 +7,11 @@ enum AppSheet: Identifiable {
     var id: Self { self }
 }
 
+/// Push destinations. Resolved by `navigationDestination(for: AppRoute.self)` in `RootView`.
+enum AppRoute: Hashable {
+    case monthCategorySpending(month: MonthYear, category: Category)
+}
+
 @Observable
 final class AppRouter {
     var presentedSheet: AppSheet? = nil

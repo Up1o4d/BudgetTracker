@@ -4,6 +4,7 @@ struct HomeCategorySpendingSectionView: View {
     let categorySpending: [CategorySpending]
     let currency: String
     let maxCategorySpending: CategorySpending?
+    var onCategoryTap: (Category) -> Void = { _ in }
 
     var body: some View {
         VStack {
@@ -11,11 +12,15 @@ struct HomeCategorySpendingSectionView: View {
                 emptyState
             } else {
                 ForEach(categorySpending) { spending in
-                    HomeCategorySpendingRowView(
-                        spending: spending,
-                        currency: currency,
-                        maxCategorySpending: maxCategorySpending
-                    )
+                    Button { onCategoryTap(spending.category) } label: {
+                        HomeCategorySpendingRowView(
+                            spending: spending,
+                            currency: currency,
+                            maxCategorySpending: maxCategorySpending
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                     if let last = categorySpending.last, last != spending {
                         Divider()
                             .padding(.vertical, 8)

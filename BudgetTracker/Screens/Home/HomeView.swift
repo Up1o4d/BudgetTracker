@@ -27,7 +27,8 @@ struct HomeView: View {
                         summary: viewModel.summary(for: month),
                         budget: viewModel.budget,
                         currency: viewModel.currency,
-                        onBudgetTap: viewModel.editBudgetTapped
+                        onBudgetTap: viewModel.editBudgetTapped,
+                        onCategoryTap: { viewModel.categoryTapped($0, in: month) }
                     )
                     .containerRelativeFrame(.horizontal)
                 }

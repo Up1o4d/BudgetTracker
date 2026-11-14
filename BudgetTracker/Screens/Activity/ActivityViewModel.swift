@@ -69,6 +69,14 @@ final class ActivityViewModel {
         self.appSettings = appSettings
     }
 
+    /// Provider streams never finish, so cancel the observers to terminate them and let the
+    /// provider deregister them. See "Stream cleanup" in docs/ARCHITECTURE.md.
+    isolated deinit {
+        transactionsObserverTask?.cancel()
+        categoriesObserverTask?.cancel()
+        searchTask?.cancel()
+    }
+
     /// Returns the fetch's settled result so `loadData` can decide whether the initial load
     /// succeeded from the value it awaits directly, rather than from `transactionsState`, which
     /// the stream observer updates asynchronously and may not have drained yet.
