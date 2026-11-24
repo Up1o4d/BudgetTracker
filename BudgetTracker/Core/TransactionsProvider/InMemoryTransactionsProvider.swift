@@ -68,6 +68,17 @@ actor InMemoryTransactionsProvider: TransactionsProviderProtocol {
         Transaction(id: "50", amount: 49.99, vendor: "Internet Provider", categoryId: Category.utilities.id, date: date(monthsAgo: 1, day: 23)),
         Transaction(id: "51", amount: 1200.00, vendor: "City Apartments", categoryId: Category.rent.id, date: date(monthsAgo: 0, day: 1)),
         Transaction(id: "52", amount: 29.40, vendor: "Whole Foods", categoryId: Category.groceries.id, date: date(monthsAgo: 0, day: 2)),
+        Transaction(id: "53", amount: 14.20, vendor: "Uber", categoryId: Category.transport.id, date: date(monthsAgo: 0, day: 4)),
+        Transaction(id: "54", amount: 46.80, vendor: "Ramen House", categoryId: Category.dining.id, date: date(monthsAgo: 0, day: 6)),
+        Transaction(id: "55", amount: 82.40, vendor: "Electric Company", categoryId: Category.utilities.id, date: date(monthsAgo: 0, day: 8)),
+        Transaction(id: "56", amount: 58.75, vendor: "Costco", categoryId: Category.groceries.id, date: date(monthsAgo: 0, day: 10)),
+        Transaction(id: "57", amount: 14.99, vendor: "Netflix", categoryId: Category.other.id, date: date(monthsAgo: 0, day: 12)),
+        Transaction(id: "58", amount: 7.50, vendor: "Metro Card", categoryId: Category.transport.id, date: date(monthsAgo: 0, day: 14)),
+        Transaction(id: "59", amount: 71.00, vendor: "Steakhouse", categoryId: Category.dining.id, date: date(monthsAgo: 0, day: 16)),
+        Transaction(id: "60", amount: 33.60, vendor: "Trader Joe's", categoryId: Category.groceries.id, date: date(monthsAgo: 0, day: 18)),
+        Transaction(id: "61", amount: 49.99, vendor: "Internet Provider", categoryId: Category.utilities.id, date: date(monthsAgo: 0, day: 20)),
+        Transaction(id: "62", amount: 24.50, vendor: "Taco Spot", categoryId: Category.dining.id, date: date(monthsAgo: 0, day: 22)),
+        Transaction(id: "63", amount: 18.40, vendor: "Blue Bottle Coffee", categoryId: Category.dining.id, date: date(monthsAgo: 0, day: 31)),
     ]
 
     private var transactionsDict: [String: Transaction]
