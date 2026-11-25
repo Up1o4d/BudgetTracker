@@ -63,7 +63,7 @@ final class HomeViewModel {
             percentageOfBudgetSpent: percentageOfBudgetSpent(totalSpending),
             lastMonthSpendingDiffPercent: lastMonthSpendingDiffPercent(for: month, totalSpending: totalSpending),
             categorySpending: categorySpending(for: monthTransactions, totalSpending: totalSpending),
-            dailySpendingSums: dailySpendingSums(for: month, transactions: monthTransactions),
+            dailySpendingSums: monthTransactions.dailySpendingSums(in: month),
             isLoading: isLoading(month)
         )
     }
@@ -128,23 +128,6 @@ final class HomeViewModel {
                     roundedPercentage: roundedPercent
                 )
             }
-    }
-
-    private func dailySpendingSums(for month: MonthYear, transactions: [Transaction]) -> [Decimal] {
-        var dayCount: Int {
-            guard month <= MonthYear.current() else { return 0 }
-            guard month == MonthYear.current() else { return month.numberOfDaysInMonth }
-            return Calendar.current.component(.day, from: .now)
-        }
-
-        var sums = Array(repeating: Decimal.zero, count: dayCount)
-
-        for transaction in transactions {
-            let day = Calendar.current.component(.day, from: transaction.date)
-            guard day <= dayCount else { continue }
-            sums[day - 1] += transaction.amount
-        }
-        return sums
     }
 
     init(

@@ -28,6 +28,15 @@ final class MonthCategorySpendingViewModel {
         transactionsState.data.reduce(Decimal.zero) { $0 + $1.amount }
     }
 
+    var transactionCount: Int {
+        transactionsState.data.count
+    }
+
+    /// One sum per day of `month`, for the spending chart.
+    var dailySpendingSums: [Decimal] {
+        transactionsState.data.dailySpendingSums(in: month)
+    }
+
     var currency: String {
         appSettings.currency
     }
