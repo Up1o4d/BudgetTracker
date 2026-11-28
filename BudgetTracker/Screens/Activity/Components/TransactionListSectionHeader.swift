@@ -6,17 +6,10 @@ struct TransactionListSectionHeader: View {
     let currency: String
 
     var body: some View {
-        HStack {
-            Text(date.formatted("EEE, dd. MMM yyyy"))
-                .foregroundStyle(Color.textTertiary)
-            Spacer()
-            Text(
-                moneySpent,
-                format: .currency(code: currency)
-            )
-            .foregroundStyle(Color.textSecondary)
-        }
-        .textStyle(.eyebrow)
+        SectionLabel(
+            leading: date.formatted("EEE, dd. MMM yyyy"),
+            trailing: moneySpent.formatted(.currency(code: currency))
+        )
     }
 }
 

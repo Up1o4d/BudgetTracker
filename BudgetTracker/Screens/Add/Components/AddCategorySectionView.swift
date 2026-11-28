@@ -7,9 +7,7 @@ struct AddCategorySectionView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("CATEGORY") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
+            SectionLabel(leading: "CATEGORY") // TODO: Localize
             VStack {
                 if isLoading {
                     ProgressView()

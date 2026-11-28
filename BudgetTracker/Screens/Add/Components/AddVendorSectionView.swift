@@ -7,9 +7,7 @@ struct AddVendorSectionView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("VENDOR") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
+            SectionLabel(leading: "VENDOR") // TODO: Localize
             VStack {
                 TextField("Where did you spend?", text: $vendor)
                 if isLoading {

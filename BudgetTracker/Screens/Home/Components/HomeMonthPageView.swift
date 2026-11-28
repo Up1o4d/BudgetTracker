@@ -50,16 +50,7 @@ struct HomeMonthPageView: View {
 
     func buildSectionWithLabels<Content: View>(leading: String, trailing: String? = nil, @ViewBuilder content: () -> Content) -> some View {
         VStack {
-            HStack {
-                Text(leading)
-                    .foregroundStyle(Color.textTertiary)
-                Spacer()
-                if let trailing = trailing {
-                    Text(trailing)
-                        .foregroundStyle(Color.textSecondary)
-                }
-            }
-            .textStyle(.eyebrow)
+            SectionLabel(leading: leading, trailing: trailing)
             content()
                 .if(summary.isLoading) { view in
                     view.redacted(reason: .placeholder).shimmering()

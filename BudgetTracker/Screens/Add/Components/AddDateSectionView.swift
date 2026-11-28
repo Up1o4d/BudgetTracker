@@ -9,9 +9,7 @@ struct AddDateSectionView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("DATE") // TODO: Localize
-                .textStyle(.eyebrow)
-                .foregroundStyle(Color.textSecondary)
+            SectionLabel(leading: "DATE") // TODO: Localize
             VStack(spacing: 16.0) {
                 Button(action: { datePickerIsPresented = true }) {
                     HStack {
