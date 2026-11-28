@@ -17,6 +17,20 @@ struct CategoryIconViewSnapshotTests {
         assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
     }
 
+    // MARK: - Large size
+
+    @Test
+    func categoryIconView_groceriesLarge_light() {
+        let view = CategoryIconView(category: .groceries, size: .large)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .light)))
+    }
+
+    @Test
+    func categoryIconView_groceriesLarge_dark() {
+        let view = CategoryIconView(category: .groceries, size: .large)
+        assertSnapshot(of: view, as: .image(traits: .init(userInterfaceStyle: .dark)))
+    }
+
     // MARK: - Unknown category
 
     @Test

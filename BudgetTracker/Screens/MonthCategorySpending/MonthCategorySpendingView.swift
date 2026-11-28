@@ -24,14 +24,16 @@ struct MonthCategorySpendingView: View {
     private var content: some View {
         List {
             Section {
-                HStack(spacing: 16) {
-                    CategoryIconView(category: viewModel.category)
-                    Text("Total") // TODO: Localize
-                    Spacer()
-                    Text(viewModel.totalAmount, format: .currency(code: viewModel.currency))
-                        .textStyle(.bodyMDSemibold)
-                }
-                .listRowBackground(Color.bgSurface)
+                MonthCategorySpendingSummarySectionView(
+                    category: viewModel.category,
+                    month: viewModel.month,
+                    totalAmount: viewModel.totalAmount,
+                    transactionCount: viewModel.transactionCount,
+                    dailySpendingSums: viewModel.dailySpendingSums,
+                    currency: viewModel.currency
+                )
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
 
             Section {
